@@ -2,61 +2,64 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Petri Net Simulator</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="toolbar">
-        <button id="newBtn"><img src="assets/new.png" alt="New"> New</button>
-        <button id="selectBtn"><img src="assets/select.png" alt="Select"> Select</button>
-        <button id="placeBtn"><img src="assets/place.png" alt="Place"> Place</button>
-        <button id="transitionBtn"><img src="assets/transition.png" alt="Transition"> Transition</button>
-        <button id="iniBtn"><img src="assets/ini.png" alt="INI"> INI</button>
-        <button id="arcBtn"><img src="assets/arc.png" alt="Arc"> Arc</button>
-        <button id="deleteBtn"><img src="assets/delete.png" alt="Delete"> Delete</button>
-        <button id="plusTokenBtn"><img src="assets/plus.png" alt="+Token"> +Token</button>
-        <button id="minusTokenBtn"><img src="assets/minus.png" alt="-Token"> -Token</button>
-        <button id="playPauseBtn"><img src="assets/play.png" alt="Play/Pause"> Play</button>
-        <button id="resetBtn"><img src="assets/reset.png" alt="Reset"> Reset</button>
-        <button id="snapBtn"><img src="assets/snap.png" alt="Snap"> Snap</button>
-        <button id="speedBtn"><img src="assets/speed.png" alt="Speed"> Speed</button>
-        <button id="saveBtn"><img src="assets/save.png" alt="Save"> Save</button>
-        <button id="loadBtn"><img src="assets/load.png" alt="Load"> Load</button>
-        <button id="clearBtn"><img src="assets/clear.png" alt="Clear"> Clear</button>
-        <button id="switchBtn"><img src="assets/switch.png" alt="Switch"> T-Model</button>
-        <button id="guideBtn"><img src="assets/guide.png" alt="Guide"> Guide</button>
-        <button id="annotateBtn"><img src="assets/note.png" alt="Annotate"> Annotate</button>
-        <button id="colorBtn"><img src="assets/color.png" alt="Color"> Color</button>
-        <button id="fontBtn"><img src="assets/font.png" alt="Font"> Font</button>
-        <button id="pnfnBtn"><img src="assets/pnfn.png" alt="PN-FN"> PN-FN</button>
-        <button id="mrpnBtn"><img src="assets/mrpn.png" alt="MR-PN"> MR-PN</button>
-    </div>
+    <header id="toolbar">
+        <button id="newBtn" title="New"><img src="assets/new.png" alt="New"></button>
+        <button id="selectBtn" title="Select"><img src="assets/select.png" alt="Select"></button>
+        <button id="placeBtn" title="Place"><img src="assets/place.png" alt="Place"></button>
+        <button id="transitionBtn" title="Transition"><img src="assets/transition.png" alt="Transition"></button>
+        <button id="iniBtn" title="Initializer"><img src="assets/ini.png" alt="INI"></button>
+        <button id="arcBtn" title="Arc"><img src="assets/arc.png" alt="Arc"></button>
+        <button id="deleteBtn" title="Delete"><img src="assets/delete.png" alt="Delete"></button>
+        <button id="plusTokenBtn" title="+Token"><img src="assets/plus.png" alt="+Token"></button>
+        <button id="minusTokenBtn" title="-Token"><img src="assets/minus.png" alt="-Token"></button>
+        <button id="playPauseBtn" title="Play/Pause"><img src="assets/play.png" alt="Play/Pause"></button>
+        <button id="resetBtn" title="Reset"><img src="assets/reset.png" alt="Reset"></button>
+        <button id="snapBtn" title="Snap"><img src="assets/snap.png" alt="Snap"></button>
+        <button id="speedBtn" title="Speed"><img src="assets/speed.png" alt="Speed"></button>
+        <button id="saveBtn" title="Save"><img src="assets/save.png" alt="Save"></button>
+        <button id="loadBtn" title="Load"><img src="assets/load.png" alt="Load"></button>
+        <button id="clearBtn" title="Clear"><img src="assets/clear.png" alt="Clear"></button>
+        <button id="switchBtn" title="Switch Model"><img src="assets/switch.png" alt="Switch"></button>
+        <button id="guideBtn" title="Guide"><img src="assets/guide.png" alt="Guide"></button>
+        <button id="annotateBtn" title="Annotate"><img src="assets/note.png" alt="Annotate"></button>
+        <button id="colorBtn" title="Color"><img src="assets/color.png" alt="Color"></button>
+        <button id="fontBtn" title="Font"><img src="assets/font.png" alt="Font"></button>
+        <button id="pnfnBtn" title="PN-FN"><img src="assets/pnfn.png" alt="PN-FN"></button>
+        <button id="mrpnBtn" title="MR-PN"><img src="assets/mrpn.png" alt="MR-PN"></button>
+    </header>
     <div id="zoom-panel">
-        <button id="zoomInBtn"><img src="assets/zin.png" alt="Zoom In"></button>
-        <button id="zoomOutBtn"><img src="assets/zout.png" alt="Zoom Out"></button>
+        <button id="zoomInBtn" title="Zoom In"><img src="assets/zin.png" alt="Zoom In"></button>
+        <button id="zoomOutBtn" title="Zoom Out"><img src="assets/zout.png" alt="Zoom Out"></button>
     </div>
     <canvas id="petriCanvas"></canvas>
     <div id="speedLabel">Speed: 1x</div>
     <div id="guideModal" class="modal">
         <div class="modal-content">
-            <span class="close">×</span>
+            <span class="close">&times;</span>
             <p id="guideText"></p>
         </div>
     </div>
     <div id="pnfnModal" class="modal">
         <div class="modal-content">
-            <span class="close">×</span>
+            <span class="close">&times;</span>
             <textarea id="pnfnText" readonly style="width: 100%; height: 300px;"></textarea>
             <button id="pnfnInsertBtn">Insert as Note</button>
         </div>
     </div>
     <div id="mrpnModal" class="modal">
         <div class="modal-content">
-            <span class="close">×</span>
+            <span class="close">&times;</span>
             <textarea id="mrpnText" readonly style="width: 100%; height: 300px;"></textarea>
             <button id="mrpnInsertBtn">Insert as Note</button>
         </div>
     </div>
-    <script src="petriNetCanvas.js"></script>
+    <script src="utils.js"></script>
+    <script src="elements.js"></script>
+    <script src="core.js"></script>
 </body>
 </html>
