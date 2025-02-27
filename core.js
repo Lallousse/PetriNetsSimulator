@@ -1115,8 +1115,295 @@ class PetriNetCanvas {
         });
     }
 
-    generateTokensFromInitializers() {
+        generateTokensFromInitializers() {
         if (!this.autoRun) return;
         const now = Date.now();
         this.initializers.forEach(ini => {
-            if (ini.outputPlace && ini.tokens
+            if (ini.outputPlace && ini.tokensPerSecond > 0) {
+                const timeSinceLast = now - ini.lastGenerationTime;
+                const interval = 1000 / ini.tokensPerSecond;
+                if (timeSinceLast >= interval) {
+                    if (ini.isContinuous || ini.tokensGenerated < ini.tokensToGenerate) {
+                        const anim = this.isSmartModel ?
+                            new TokenAnimation(ini.x, ini.y, ini.outputPlace.x, ini.outputPlace.y, ini.outputPlace, null, new SmartToken(ini.tokenValue)) :
+                            new TokenAnimation(ini.x, ini.y, ini.outputPlace.x, ini.outputPlace.y, ini.outputPlace);
+                        this.animations.push(anim);
+                        ini.tokensGenerated++;
+                        ini.lastGenerationTime = now;
+                        ini.isGenerating = true;
+                    } else {
+                        ini.isGenerating = false;
+                    }
+                }
+            }
+        });
+    }
+
+    getElementAt(x, y) {
+        for (const p of this.places) {
+            if ((x - p.x) ** 2 + (y - p.y) ** 2 <= (this.iconSize / 2) ** 2) return p;
+        }
+        for (const t of this.transitions) {
+            if (Math.abs(x - t.x) < this.iconSize / 2 && Math.abs(y - t.y) < this.iconSize / 2) return t;
+        }
+        for (const i of this.initializers) {
+            if ((x - i.x) ** 2 + (y - i.y) ** 2 <= (this.iconSize / 2) ** 2) return i;
+        }
+        return null;
+    }
+
+    getArcAt(x, y) {
+        for (const arc of this.arcs) {
+            const startX = arc.start.x;
+            const startY = arc.start.y;
+            const endX = arc.end.x;
+            const endY = arc.end.y;
+            const midX = (startX + endX) / 2;
+            const midY = (startY + endY) / 2;
+            if (Math.abs(x - midX) < 10 && Math.abs(y - midY) < 10) return arc;
+        }
+        return null;
+    }
+
+    getAnnotationAt(x, y) {
+        for (const a of this.annotations) {
+            const width = this.ctx.measureText(a.text).width;
+            const height = a.fontSize;
+            if (x >= a.x && x <= a.x + width && y >= a.y - height && y <= a.y) return a;
+        }
+        return null;
+    }
+
+    getTransitionAt(x, y) {
+        return this.transitions.find(t => Math.abs(x - t.x) < this.iconSize / 2 && Math.abs(y - t.y) < this.iconSize / 2) || null;
+    }
+
+    selectWithinArea() {
+        this.places.forEach(p => {
+            if (this.selectionArea.x <= p.x && p.x <= this.selectionArea.x + this.selectionArea.width &&
+                this.selectionArea.y <= p.y && p.y <= this.selectionArea.y + this.selectionArea.height) {
+                this.selectedElements.push(p);
+            }
+        });
+        this.transitions.forEach(t => {
+            if (this.selectionArea.x <= t.x && t.x <= this.selectionArea.x + this.selectionArea.width &&
+                this.selectionArea.y <= t.y && t.y <= this.selectionArea.y + this.selectionArea.height) {
+                this.selectedElements.push(t);
+            }
+        });
+        this.initializers.forEach(i => {
+            if (this.selectionArea.x <= i.x && i.x <= this.selectionArea.x + this.selectionArea.width &&
+                this.selectionArea.y <= i.y && i.y <= this.selectionArea.y + this.selectionArea.height) {
+                this.selectedElements.push(i);
+            }
+        });
+        this.arcs.forEach(a => {
+            const startX = a.start.x;
+            const startY = a.start.y;
+            const endX = a.end.x;
+            const endY = a.end.y;
+            const line = { x1: startX, y1: startY, x2: endX, y2: endY };
+            if (this.intersectsRectLine(this.selectionArea, line)) {
+                this.selectedElements.push(a);
+            }
+        });
+        this.annotations.forEach(a => {
+            const width = this.ctx.measureText(a.text).width;
+            const height = a.fontSize;
+            if (this.selectionArea.x <= a.x && a.x + width <= this.selectionArea.x + this.selectionArea.width &&
+                this.selectionArea.y <= a.y - height && a.y <= this.selectionArea.y + this.selectionArea.height) {
+                this.selectedElements.push(a);
+            }
+        });
+        if (this.selectedElements.length === 1) this.selected = this.selectedElements[0];
+        else this.selected = null;
+    }
+
+    intersectsRectLine(rect, line) {
+        const { x, y, width, height } = rect;
+        const { x1, y1, x2, y2 } = line;
+        const left = Math.min(x1, x2);
+        const right = Math.max(x1, x2);
+        const top = Math.min(y1, y2);
+        const bottom = Math.max(y1, y2);
+        if (left > x + width || right < x || top > y + height || bottom < y) return false;
+
+        const m = x1 === x2 ? Infinity : (y2 - y1) / (x2 - x1);
+        const b = y1 - m * x1;
+        const edges = [
+            { x: x, y: y }, { x: x + width, y: y },
+            { x: x + width, y: y + height }, { x: x, y: y + height }
+        ];
+        for (let i = 0; i < 4; i++) {
+            const xEdge = edges[i].x;
+            const yEdge = m === Infinity ? y1 : m * xEdge + b;
+            if (yEdge >= Math.min(y, y + height) && yEdge <= Math.max(y, y + height) &&
+                xEdge >= Math.min(x1, x2) && xEdge <= Math.max(x1, x2)) return true;
+        }
+        return false;
+    }
+
+    saveStateToUndo() {
+        if (this.undoHistory.length >= this.maxHistorySize) this.undoHistory.shift();
+        this.undoHistory.push({
+            places: this.places.map(p => ({ ...p, smartToken: p.smartToken ? { value: p.smartToken.value } : null })),
+            transitions: this.transitions.map(t => ({
+                ...t,
+                inputArcs: [...t.inputArcs],
+                outputArcs: [...t.outputArcs],
+                task: t.task ? { task: t.task.task } : null
+            })),
+            arcs: this.arcs.map(a => ({ ...a })),
+            initializers: this.initializers.map(i => ({ ...i })),
+            annotations: this.annotations.map(a => ({ ...a })),
+            selectedElements: [...this.selectedElements],
+            isSmartModel: this.isSmartModel,
+            autoRun: this.autoRun,
+            addMode: this.addMode,
+            drawingArc: this.drawingArc,
+            arcStart: this.arcStart ? { ...this.arcStart } : null,
+            arcEnd: this.arcEnd ? { ...this.arcEnd } : null,
+            selectionArea: this.selectionArea ? { ...this.selectionArea } : null,
+            selectionStart: this.selectionStart ? { ...this.selectionStart } : null,
+            currentFileName: this.designState.currentFileName
+        });
+        this.redoHistory = [];
+    }
+
+    undo() {
+        if (this.undoHistory.length > 0) {
+            this.redoHistory.push(this.getCurrentState());
+            this.restoreState(this.undoHistory.pop());
+            this.updateTitle();
+        }
+    }
+
+    redo() {
+        if (this.redoHistory.length > 0) {
+            this.undoHistory.push(this.getCurrentState());
+            this.restoreState(this.redoHistory.pop());
+            this.updateTitle();
+        }
+    }
+
+    getCurrentState() {
+        return {
+            places: this.places.map(p => ({ ...p, smartToken: p.smartToken ? { value: p.smartToken.value } : null })),
+            transitions: this.transitions.map(t => ({
+                ...t,
+                inputArcs: [...t.inputArcs],
+                outputArcs: [...t.outputArcs],
+                task: t.task ? { task: t.task.task } : null
+            })),
+            arcs: this.arcs.map(a => ({ ...a })),
+            initializers: this.initializers.map(i => ({ ...i })),
+            annotations: this.annotations.map(a => ({ ...a })),
+            selectedElements: [...this.selectedElements],
+            isSmartModel: this.isSmartModel,
+            autoRun: this.autoRun,
+            addMode: this.addMode,
+            drawingArc: this.drawingArc,
+            arcStart: this.arcStart ? { ...this.arcStart } : null,
+            arcEnd: this.arcEnd ? { ...this.arcEnd } : null,
+            selectionArea: this.selectionArea ? { ...this.selectionArea } : null,
+            selectionStart: this.selectionStart ? { ...this.selectionStart } : null,
+            currentFileName: this.designState.currentFileName
+        };
+    }
+
+    restoreState(state) {
+        this.places = state.places.map(p => {
+            const place = new Place(p.name, p.x, p.y, p.tokens);
+            if (p.smartToken) place.smartToken = new SmartToken(p.smartToken.value);
+            return place;
+        });
+        this.transitions = state.transitions.map(t => {
+            const trans = new Transition(t.name, t.x, t.y);
+            if (t.task) trans.task = new TransitionTask(t.task.task);
+            return trans;
+        });
+        this.initializers = state.initializers.map(i => new Initializer(i.name, i.x, i.y, i.tokensToGenerate, i.tokensPerSecond, i.isContinuous, i.tokenValue));
+        this.arcs = state.arcs.map(a => {
+            const start = a.start instanceof Place ? this.places[this.places.findIndex(p => p.name === a.start.name)] :
+                          a.start instanceof Transition ? this.transitions[this.transitions.findIndex(t => t.name === a.start.name)] :
+                          this.initializers[this.initializers.findIndex(i => i.name === a.start.name)];
+            const end = a.end instanceof Place ? this.places[this.places.findIndex(p => p.name === a.end.name)] :
+                        this.transitions[this.transitions.findIndex(t => t.name === a.end.name)];
+            return new Arc(start, end, a.isInput);
+        });
+        this.transitions.forEach((t, i) => {
+            t.inputArcs = state.transitions[i].inputArcs.map(a => ({ 
+                place: this.places[this.places.findIndex(p => p.name === a.place.name)], 
+                weight: a.weight 
+            }));
+            t.outputArcs = state.transitions[i].outputArcs.map(a => ({ 
+                place: this.places[this.places.findIndex(p => p.name === a.place.name)], 
+                weight: a.weight 
+            }));
+        });
+        this.initializers.forEach((i, idx) => {
+            if (state.initializers[idx].outputPlace) {
+                i.outputPlace = this.places[this.places.findIndex(p => p.name === state.initializers[idx].outputPlace.name)];
+            }
+        });
+        this.annotations = state.annotations.map(a => new Annotation(a.text, a.x, a.y, a.fontName, a.fontSize, a.color, a.strokeWeight));
+        this.selectedElements = state.selectedElements.map(e => {
+            if (e instanceof Place) return this.places.find(p => p.name === e.name);
+            if (e instanceof Transition) return this.transitions.find(t => t.name === e.name);
+            if (e instanceof Arc) return this.arcs.find(a => a.start.name === e.start.name && a.end.name === e.end.name && a.isInput === e.isInput);
+            if (e instanceof Initializer) return this.initializers.find(i => i.name === e.name);
+            if (e instanceof Annotation) return this.annotations.find(a => a.text === e.text && a.x === e.x && a.y === e.y);
+            return e;
+        });
+        this.selected = this.selectedElements.length === 1 ? this.selectedElements[0] : null;
+        this.isSmartModel = state.isSmartModel;
+        this.autoRun = state.autoRun;
+        this.addMode = state.addMode;
+        this.drawingArc = state.drawingArc;
+        this.arcStart = state.arcStart ? new Point(state.arcStart.x, state.arcStart.y) : null;
+        this.arcEnd = state.arcEnd ? new Point(state.arcEnd.x, state.arcEnd.y) : null;
+        this.selectionArea = state.selectionArea ? { ...state.selectionArea } : null;
+        this.selectionStart = state.selectionStart ? new Point(state.selectionStart.x, state.selectionStart.y) : null;
+        this.designState.currentFileName = state.currentFileName;
+    }
+
+    changeAnnotationColor() {
+        if (this.addMode === "select" && this.selected instanceof Annotation) {
+            this.saveStateToUndo();
+            const color = prompt("Enter color (e.g., red, #FF0000):", this.selected.color);
+            if (color) {
+                this.selectedElements.forEach(elem => {
+                    if (elem instanceof Annotation) elem.color = color;
+                });
+                this.designState.setUnsavedChanges();
+            }
+        }
+    }
+
+    changeAnnotationFont() {
+        if (this.addMode === "select" && this.selected instanceof Annotation) {
+            this.saveStateToUndo();
+            const fonts = ["Arial", "Times New Roman", "Courier New", "Verdana", "Helvetica"];
+            const fontName = prompt("Enter font name (" + fonts.join(", ") + "):", this.selected.fontName) || this.selected.fontName;
+            const fontSize = prompt("Enter font size:", this.selected.fontSize) || this.selected.fontSize;
+            this.selectedElements.forEach(elem => {
+                if (elem instanceof Annotation) {
+                    elem.fontName = fonts.includes(fontName) ? fontName : elem.fontName;
+                    try {
+                        elem.fontSize = parseInt(fontSize);
+                    } catch (ex) {
+                        console.log("Invalid font size input");
+                    }
+                }
+            });
+            this.designState.setUnsavedChanges();
+        }
+    }
+
+    updateTitle() {
+        document.title = `Petri Net Simulator - ${this.designState.currentFileName || "Untitled"}${this.designState.hasUnsavedChanges() ? " (unsaved changes *)" : " (saved)"}`;
+    }
+}
+
+// Initialize the canvas
+const canvas = new PetriNetCanvas();
