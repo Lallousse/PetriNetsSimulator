@@ -100,3 +100,9 @@ button.active {
     font-weight: bold;
     cursor: pointer;
 }
+
+textarea {
+    resize: none;
+    font-family: 'Monospaced', monospace;
+    font-size: 12px;
+}
