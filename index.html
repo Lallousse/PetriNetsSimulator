@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Petri Net Simulator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="toolbar">
+        <button id="newBtn"><img src="assets/new.png" alt="New"> New</button>
+        <button id="selectBtn"><img src="assets/select.png" alt="Select"> Select</button>
+        <button id="placeBtn"><img src="assets/place.png" alt="Place"> Place</button>
+        <button id="transitionBtn"><img src="assets/transition.png" alt="Transition"> Transition</button>
+        <button id="arcBtn"><img src="assets/arc.png" alt="Arc"> Arc</button>
+        <button id="deleteBtn"><img src="assets/delete.png" alt="Delete"> Delete</button>
+        <button id="plusTokenBtn"><img src="assets/plus.png" alt="+Token"> +Token</button>
+        <button id="minusTokenBtn"><img src="assets/minus.png" alt="-Token"> -Token</button>
+        <button id="playPauseBtn"><img src="assets/play.png" alt="Play/Pause"> Play</button>
+        <button id="resetBtn"><img src="assets/reset.png" alt="Reset"> Reset</button>
+        <button id="snapBtn"><img src="assets/snap.png" alt="Snap"> Snap</button>
+        <button id="speedBtn"><img src="assets/speed.png" alt="Speed"> Speed</button>
+        <button id="saveBtn"><img src="assets/save.png" alt="Save"> Save</button>
+        <button id="loadBtn"><img src="assets/load.png" alt="Load"> Load</button>
+        <button id="clearBtn"><img src="assets/clear.png" alt="Clear"> Clear</button>
+        <button id="switchBtn"><img src="assets/switch.png" alt="Switch"> T-Model</button>
+        <button id="guideBtn"><img src="assets/guide.png" alt="Guide"> Guide</button>
+    </div>
+    <div id="zoom-panel">
+        <button id="zoomInBtn"><img src="assets/zin.png" alt="Zoom In"></button>
+        <button id="zoomOutBtn"><img src="assets/zout.png" alt="Zoom Out"></button>
+    </div>
+    <canvas id="petriCanvas"></canvas>
+    <div id="speedLabel">Speed: 1x</div>
+    <div id="guideModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <p id="guideText"></p>
+        </div>
+    </div>
+    <script src="petriNetCanvas.js"></script>
+</body>
+</html>
