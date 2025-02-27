@@ -10,7 +10,7 @@ body {
     background-color: #ffffff;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px; /* Increased gap for spacing */
     padding: 8px 16px;
     border-bottom: 2px solid #e0e0e0;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -64,6 +64,7 @@ button {
     background: none;
     cursor: pointer;
     transition: background-color 0.2s;
+    position: relative; /* For tooltip positioning */
 }
 
 button:hover {
@@ -88,6 +89,22 @@ button.highlighted {
 button.active {
     background-color: #add8e6;
     border-radius: 4px;
+}
+
+/* Tooltip styling */
+button[title]:hover:after {
+    content: attr(title);
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
 }
 
 .modal {
