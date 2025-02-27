@@ -11,6 +11,7 @@
         <button id="selectBtn"><img src="assets/select.png" alt="Select"> Select</button>
         <button id="placeBtn"><img src="assets/place.png" alt="Place"> Place</button>
         <button id="transitionBtn"><img src="assets/transition.png" alt="Transition"> Transition</button>
+        <button id="iniBtn"><img src="assets/ini.png" alt="INI"> INI</button>
         <button id="arcBtn"><img src="assets/arc.png" alt="Arc"> Arc</button>
         <button id="deleteBtn"><img src="assets/delete.png" alt="Delete"> Delete</button>
         <button id="plusTokenBtn"><img src="assets/plus.png" alt="+Token"> +Token</button>
@@ -24,6 +25,11 @@
         <button id="clearBtn"><img src="assets/clear.png" alt="Clear"> Clear</button>
         <button id="switchBtn"><img src="assets/switch.png" alt="Switch"> T-Model</button>
         <button id="guideBtn"><img src="assets/guide.png" alt="Guide"> Guide</button>
+        <button id="annotateBtn"><img src="assets/note.png" alt="Annotate"> Annotate</button>
+        <button id="colorBtn"><img src="assets/color.png" alt="Color"> Color</button>
+        <button id="fontBtn"><img src="assets/font.png" alt="Font"> Font</button>
+        <button id="pnfnBtn"><img src="assets/pnfn.png" alt="PN-FN"> PN-FN</button>
+        <button id="mrpnBtn"><img src="assets/mrpn.png" alt="MR-PN"> MR-PN</button>
     </div>
     <div id="zoom-panel">
         <button id="zoomInBtn"><img src="assets/zin.png" alt="Zoom In"></button>
@@ -33,8 +39,22 @@
     <div id="speedLabel">Speed: 1x</div>
     <div id="guideModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
+            <span class="close">×</span>
             <p id="guideText"></p>
+        </div>
+    </div>
+    <div id="pnfnModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <textarea id="pnfnText" readonly style="width: 100%; height: 300px;"></textarea>
+            <button id="pnfnInsertBtn">Insert as Note</button>
+        </div>
+    </div>
+    <div id="mrpnModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <textarea id="mrpnText" readonly style="width: 100%; height: 300px;"></textarea>
+            <button id="mrpnInsertBtn">Insert as Note</button>
         </div>
     </div>
     <script src="petriNetCanvas.js"></script>
