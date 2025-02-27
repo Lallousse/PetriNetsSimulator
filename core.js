@@ -262,6 +262,51 @@ class PetriNet {
         this.inputFunction = new Map();
         this.outputFunction = new Map();
         this.initialMarking = new Map();
+        this.canvas = document.getElementById("petriCanvas");
+        if (!this.canvas) {
+            console.error("Canvas element not found!");
+            return;
+        }
+        this.ctx = this.canvas.getContext("2d");
+        this.places = [];
+        this.transitions = [];
+        this.arcs = [];
+        this.initializers = [];
+        this.annotations = [];
+        this.animations = [];
+        this.selectedElements = [];
+        this.selected = null;
+        this.addMode = "select";
+        this.drawingArc = false;
+        this.arcStart = null;
+        this.arcEnd = null;
+        this.selectionArea = null;
+        this.selectionStart = null;
+        this.autoRun = false;
+        this.lastStep = 0;
+        this.animationSpeed = 1.0;
+        this.speedOptions = [0.5, 1.0, 1.5, 2.0];
+        this.currentSpeedIndex = 1;
+        this.snappingEnabled = false;
+        this.zoomLevel = 1.0;
+        this.isSmartModel = false;
+        this.designState = new DesignState(this);
+
+        this.iconSize = 32;
+        this.tokenSize = 8;
+        this.stepDelay = 500;
+        this.animationSpeedBase = 0.05;
+        this.snapGridSize = 25;
+
+        this.icons = {};
+        this.undoHistory = [];
+        this.redoHistory = [];
+        this.maxHistorySize = 10;
+
+        this.resize();
+        this.loadIcons();
+        this.initEventListeners();
+        this.renderLoop();
     }
 
     addPlace(p) {
@@ -1405,5 +1450,11 @@ class PetriNetCanvas {
     }
 }
 
-// Initialize the canvas
-const canvas = new PetriNetCanvas();
+
+// Initialize the canvas after DOM is loaded
+document.addEventListener("DOMContentLoaded", () => {
+    const canvas = new PetriNetCanvas();
+    if (!canvas.canvas) {
+        console.error("Failed to initialize PetriNetCanvas!");
+    }
+});
