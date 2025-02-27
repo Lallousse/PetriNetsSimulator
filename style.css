@@ -2,60 +2,78 @@ body {
     margin: 0;
     font-family: 'Helvetica Neue', Arial, sans-serif;
     overflow: hidden;
+    background-color: #f4f4f4;
 }
 
 #toolbar {
-    height: 100px;
-    background-color: #e0f7fa;
+    height: 60px;
+    background-color: #ffffff;
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 10px;
-    border-bottom: 1px solid #ccc;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-bottom: 2px solid #e0e0e0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     overflow-x: auto;
+    white-space: nowrap;
 }
 
 #zoom-panel {
-    width: 40px;
-    background-color: #f0f0f5;
+    width: 50px;
+    background-color: #ffffff;
     position: absolute;
-    top: 100px;
+    top: 60px;
     left: 0;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 12px;
     padding: 10px;
-    height: calc(100% - 100px);
-    border-right: 1px solid #ccc;
+    height: calc(100% - 60px);
+    border-right: 2px solid #e0e0e0;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
 }
 
 #petriCanvas {
     position: absolute;
-    top: 100px;
-    left: 40px;
-    width: calc(100% - 40px);
-    height: calc(100% - 100px);
-    background-color: #f0f0f5;
+    top: 60px;
+    left: 50px;
+    width: calc(100% - 50px);
+    height: calc(100% - 60px);
+    background-color: #ffffff;
 }
 
 #speedLabel {
     position: absolute;
     top: 10px;
     right: 10px;
-    font-size: 12px;
+    font-size: 14px;
+    color: #333;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 4px 8px;
+    border-radius: 4px;
 }
 
 button {
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 5px;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    background: none;
     cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: #f0f0f0;
+    border-radius: 4px;
 }
 
 button img {
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
 }
 
 button:disabled img {
@@ -64,10 +82,12 @@ button:disabled img {
 
 button.highlighted {
     background-color: #ffeb3b;
+    border-radius: 4px;
 }
 
 button.active {
     background-color: #add8e6;
+    border-radius: 4px;
 }
 
 .modal {
@@ -77,20 +97,22 @@ button.active {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.5);
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
 }
 
 .modal-content {
     background-color: white;
-    margin: 15% auto;
+    margin: 10% auto;
     padding: 20px;
-    border: 1px solid #888;
+    border-radius: 8px;
     width: 80%;
     max-width: 800px;
-    max-height: 400px;
+    max-height: 80vh;
     overflow-y: auto;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     font-family: 'Monospaced', monospace;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .close {
@@ -101,8 +123,15 @@ button.active {
     cursor: pointer;
 }
 
+.close:hover {
+    color: #000;
+}
+
 textarea {
     resize: none;
     font-family: 'Monospaced', monospace;
-    font-size: 12px;
+    font-size: 14px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px;
 }
