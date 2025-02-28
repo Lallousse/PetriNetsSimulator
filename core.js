@@ -360,11 +360,13 @@ class PetriNetCanvas {
         this.zoomLevel = 1.0;
         this.isSmartModel = false;
         this.designState = new DesignState(this);
+        this.designExists = false; // Track if a design exists
+        this.arcType = "line"; // Default arc type
 
         this.iconSize = 32;
         this.tokenSize = 8;
-        this.stepDelay = 500;
-        this.animationSpeedBase = 0.05;
+        this.stepDelay = 1000; // Slower default for visibility
+        this.animationSpeedBase = 0.02; // Slower animation
         this.snapGridSize = 25;
 
         this.icons = {};
@@ -400,7 +402,7 @@ class PetriNetCanvas {
             this.icons[name].src = `assets/${name}.png`;
             this.icons[name].onload = () => {
                 console.log(`Loaded icon: ${name}`);
-                this.renderLoop(); // Trigger redraw after icons load
+                this.renderLoop();
             };
             this.icons[name].onerror = () => console.error(`Failed to load icon: ${name}`);
         });
@@ -411,6 +413,7 @@ class PetriNetCanvas {
         this.canvas.addEventListener("mouseup", (e) => this.handleMouseUp(e));
         this.canvas.addEventListener("mousemove", (e) => this.handleMouseMove(e));
         this.canvas.addEventListener("dblclick", (e) => this.handleDoubleClick(e));
+        this.canvas.addEventListener("wheel", (e) => this.handleWheel(e));
 
         document.getElementById("newBtn").addEventListener("click", () => this.newDesign());
         document.getElementById("selectBtn").addEventListener("click", () => this.setMode("select"));
@@ -418,6 +421,10 @@ class PetriNetCanvas {
         document.getElementById("transitionBtn").addEventListener("click", () => this.setMode("transition"));
         document.getElementById("iniBtn").addEventListener("click", () => this.setMode("ini"));
         document.getElementById("arcBtn").addEventListener("click", () => this.setMode("arc"));
+        document.getElementById("arcTypeSelect").addEventListener("change", (e) => {
+            this.arcType = e.target.value;
+            console.log("Arc type set to:", this.arcType);
+        });
         document.getElementById("deleteBtn").addEventListener("click", () => this.deleteSelected());
         document.getElementById("plusTokenBtn").addEventListener("click", () => this.addToken());
         document.getElementById("minusTokenBtn").addEventListener("click", () => this.removeToken());
@@ -431,13 +438,17 @@ class PetriNetCanvas {
         document.getElementById("switchBtn").addEventListener("click", () => this.toggleModel());
         document.getElementById("guideBtn").addEventListener("click", () => this.showGuide());
         document.getElementById("annotateBtn").addEventListener("click", () => this.setMode("annotate"));
-        document.getElementById("colorBtn").addEventListener("click", () => this.changeAnnotationColor());
-        document.getElementById("fontBtn").addEventListener("click", () => this.changeAnnotationFont());
+        document.getElementById("colorSelect").addEventListener("change", (e) => this.changeAnnotationColor(e.target.value));
+        document.getElementById("fontSelect").addEventListener("change", (e) => this.changeAnnotationFont(e.target.value));
         document.getElementById("pnfnBtn").addEventListener("click", () => this.showPNFN());
         document.getElementById("mrpnBtn").addEventListener("click", () => this.showMRPN());
 
         document.getElementById("pnfnInsertBtn").addEventListener("click", () => this.insertPNFNAsNote());
+        document.getElementById("pnfnRegenerateAllBtn").addEventListener("click", () => this.regeneratePNFN(true));
+        document.getElementById("pnfnRegenerateM0Btn").addEventListener("click", () => this.regeneratePNFN(false));
         document.getElementById("mrpnInsertBtn").addEventListener("click", () => this.insertMRPNAsNote());
+        document.getElementById("mrpnRegenerateAllBtn").addEventListener("click", () => this.regenerateMRPN(true));
+        document.getElementById("mrpnRegenerateM0Btn").addEventListener("click", () => this.regenerateMRPN(false));
 
         document.getElementById("zoomInBtn").addEventListener("click", () => this.zoomIn());
         document.getElementById("zoomOutBtn").addEventListener("click", () => this.zoomOut());
@@ -465,7 +476,7 @@ class PetriNetCanvas {
             transitions: this.transitions.length,
             arcs: this.arcs.length,
             initializers: this.initializers.length,
-            annotations: this.annotations.length
+            animations: this.animations.length
         });
 
         this.arcs.forEach(arc => arc.draw(this.ctx, this.iconSize));
@@ -547,7 +558,7 @@ class PetriNetCanvas {
 
         console.log(`Mouse down at (${x}, ${y}) with mode: ${this.addMode}`);
 
-        if (y < 0) return;
+        if (y < 0 || !this.designExists) return;
 
         const elem = this.getElementAt(x, y);
         const arc = this.getArcAt(x, y);
@@ -606,13 +617,11 @@ class PetriNetCanvas {
             this.saveStateToUndo();
             const snappedX = this.snappingEnabled ? Math.round(x / this.snapGridSize) * this.snapGridSize : x;
             const snappedY = this.snappingEnabled ? Math.round(y / this.snapGridSize) * this.snapGridSize : y;
-            const text = prompt("Enter annotation text:");
-            if (text && text.trim()) {
-                this.annotations.push(new Annotation(text.trim(), snappedX, snappedY));
-                this.designState.setUnsavedChanges();
-                this.updateButtonStates();
-                console.log(`Added annotation at (${snappedX}, ${snappedY})`);
-            }
+            const text = prompt("Enter annotation text:") || "Annotation";
+            this.annotations.push(new Annotation(text.trim(), snappedX, snappedY));
+            this.designState.setUnsavedChanges();
+            this.updateButtonStates();
+            console.log(`Added annotation at (${snappedX}, ${snappedY})`);
         }
     }
 
@@ -626,7 +635,7 @@ class PetriNetCanvas {
             const elem = this.getElementAt(x, y);
             if (start instanceof Place && elem instanceof Transition) {
                 this.saveStateToUndo();
-                const arc = new Arc(start, elem, true);
+                const arc = new Arc(start, elem, true, this.arcType);
                 this.arcs.push(arc);
                 elem.inputArcs.push({ place: start, weight: 1 });
                 this.designState.setUnsavedChanges();
@@ -634,7 +643,7 @@ class PetriNetCanvas {
                 console.log("Added input arc");
             } else if (start instanceof Transition && elem instanceof Place) {
                 this.saveStateToUndo();
-                const arc = new Arc(start, elem, false);
+                const arc = new Arc(start, elem, false, this.arcType);
                 this.arcs.push(arc);
                 start.outputArcs.push({ place: elem, weight: 1 });
                 this.designState.setUnsavedChanges();
@@ -642,7 +651,7 @@ class PetriNetCanvas {
                 console.log("Added output arc");
             } else if (start instanceof Initializer && elem instanceof Place) {
                 this.saveStateToUndo();
-                const arc = new Arc(start, elem, false);
+                const arc = new Arc(start, elem, false, this.arcType);
                 this.arcs.push(arc);
                 start.outputPlace = elem;
                 this.designState.setUnsavedChanges();
@@ -700,6 +709,8 @@ class PetriNetCanvas {
         const y = (e.clientY - rect.top) / this.zoomLevel;
         const elem = this.getElementAt(x, y);
         const annotation = this.getAnnotationAt(x, y);
+        const arc = this.getArcAt(x, y);
+
         if (this.addMode === "select") {
             if (annotation) {
                 const newText = prompt("Enter new annotation text:", annotation.text);
@@ -708,94 +719,61 @@ class PetriNetCanvas {
                     annotation.text = newText.trim();
                     this.designState.setUnsavedChanges();
                 }
-            } else if (elem instanceof Place && this.isSmartModel && elem.tokens > 0) {
-                const name = prompt("Enter new name:", elem.name) || elem.name;
-                const value = prompt("Enter token value:", elem.getTokenValue()) || elem.getTokenValue();
-                this.saveStateToUndo();
-                elem.name = name.trim();
-                try {
-                    elem.setTokenValue(parseFloat(value));
-                } catch (ex) {
-                    console.log("Invalid token value input");
-                }
-                this.designState.setUnsavedChanges();
-            } else if (elem instanceof Transition && this.isSmartModel) {
-                const name = prompt("Enter new name:", elem.name) || elem.name;
-                const task = prompt("Enter task (+, -, *, /, !=num, ==num, cp, p sec):", elem.task.task) || elem.task.task;
-                this.saveStateToUndo();
-                elem.name = name.trim();
-                elem.task = new TransitionTask(task);
-                this.designState.setUnsavedChanges();
-            } else if (elem instanceof Initializer) {
-                if (this.isSmartModel) {
-                    const name = prompt("Enter new name:", elem.name) || elem.name;
-                    const tokens = prompt("Enter tokens to generate:", elem.tokensToGenerate) || elem.tokensToGenerate;
-                    const value = prompt("Enter token value:", elem.tokenValue) || elem.tokenValue;
-                    const rate = prompt("Enter rate (tokens/sec):", elem.tokensPerSecond) || elem.tokensPerSecond;
-                    const continuous = confirm("Continuous?") ? "yes" : "no";
-                    this.saveStateToUndo();
-                    elem.name = name.trim();
-                    try {
-                        elem.tokensToGenerate = parseInt(tokens);
-                        elem.tokenValue = parseFloat(value);
-                        elem.tokensPerSecond = parseFloat(rate);
-                        elem.isContinuous = continuous === "yes";
-                        elem.tokensGenerated = 0;
-                        elem.lastGenerationTime = Date.now();
-                    } catch (ex) {
-                        console.log("Invalid input for initializer settings");
-                    }
-                    this.designState.setUnsavedChanges();
-                } else {
-                    const name = prompt("Enter new name:", elem.name) || elem.name;
-                    const tokens = prompt("Enter tokens to generate:", elem.tokensToGenerate) || elem.tokensToGenerate;
-                    const rate = prompt("Enter rate (tokens/sec):", elem.tokensPerSecond) || elem.tokensPerSecond;
-                    const continuous = confirm("Continuous?") ? "yes" : "no";
-                    this.saveStateToUndo();
-                    elem.name = name.trim();
-                    try {
-                        elem.tokensToGenerate = parseInt(tokens);
-                        elem.tokensPerSecond = parseFloat(rate);
-                        elem.isContinuous = continuous === "yes";
-                        elem.tokensGenerated = 0;
-                        elem.lastGenerationTime = Date.now();
-                    } catch (ex) {
-                        console.log("Invalid input for initializer settings");
-                    }
-                    this.designState.setUnsavedChanges();
-                }
-            } else if (!this.isSmartModel) {
-                const arc = this.getArcAt(x, y);
-                if (arc) {
-                    if (arc.isInput) {
-                        const weight = prompt("Enter input arc weight:", arc.getWeight()) || arc.getWeight();
-                        this.saveStateToUndo();
-                        try {
-                            const w = parseInt(weight);
-                            if (w > 0) arc.end.inputArcs.find(a => a.place === arc.start).weight = w;
-                        } catch (ex) {
-                            console.log("Invalid weight input");
-                        }
-                        this.designState.setUnsavedChanges();
-                    } else {
-                        const weight = prompt("Enter output arc weight:", arc.getWeight()) || arc.getWeight();
-                        this.saveStateToUndo();
-                        try {
-                            const w = parseInt(weight);
-                            if (w > 0) arc.start.outputArcs.find(a => a.place === arc.end).weight = w;
-                        } catch (ex) {
-                            console.log("Invalid weight input");
-                        }
-                        this.designState.setUnsavedChanges();
-                    }
-                } else if (elem) {
-                    const newName = prompt("Enter new name:", elem.name) || elem.name;
+            } else if (elem) {
+                const newName = prompt("Enter new name:", elem.name);
+                if (newName && newName.trim()) {
                     this.saveStateToUndo();
                     elem.name = newName.trim();
                     this.designState.setUnsavedChanges();
+                    console.log(`Renamed element to: ${newName}`);
                 }
+                if (elem instanceof Initializer) {
+                    const tokens = prompt("Enter tokens to generate:", elem.tokensToGenerate) || elem.tokensToGenerate;
+                    const rate = prompt("Enter rate (tokens/sec):", elem.tokensPerSecond) || elem.tokensPerSecond;
+                    const continuous = confirm("Continuous?") ? "yes" : "no";
+                    this.saveStateToUndo();
+                    try {
+                        elem.tokensToGenerate = parseInt(tokens);
+                        if (this.isSmartModel) {
+                            const value = prompt("Enter token value:", elem.tokenValue) || elem.tokenValue;
+                            elem.tokenValue = parseFloat(value);
+                        }
+                        elem.tokensPerSecond = parseFloat(rate);
+                        elem.isContinuous = continuous === "yes";
+                        elem.tokensGenerated = 0;
+                        elem.lastGenerationTime = Date.now();
+                    } catch (ex) {
+                        console.log("Invalid input for initializer settings");
+                    }
+                    this.designState.setUnsavedChanges();
+                }
+            } else if (arc && !this.isSmartModel) {
+                const weight = prompt("Enter arc weight:", arc.getWeight()) || arc.getWeight();
+                this.saveStateToUndo();
+                try {
+                    const w = parseInt(weight);
+                    if (w > 0) {
+                        if (arc.isInput) {
+                            arc.end.inputArcs.find(a => a.place === arc.start).weight = w;
+                        } else {
+                            arc.start.outputArcs.find(a => a.place === arc.end).weight = w;
+                        }
+                        console.log(`Set arc weight to: ${w}`);
+                    }
+                } catch (ex) {
+                    console.log("Invalid weight input");
+                }
+                this.designState.setUnsavedChanges();
+            } else if (arc && this.isSmartModel) {
+                alert("Arc weights are not adjustable in S-Model.");
             }
         }
+    }
+
+    handleWheel(e) {
+        e.preventDefault();
+        if (e.deltaY < 0) this.zoomIn();
+        else this.zoomOut();
     }
 
     newDesign() {
@@ -813,6 +791,7 @@ class PetriNetCanvas {
         this.selected = null;
         this.addMode = "select";
         this.drawingArc = false;
+        this.designExists = true; // Design now exists
         this.designState.newDesign("Untitled");
         this.updateTitle();
         this.updateButtonStates();
@@ -954,6 +933,7 @@ class PetriNetCanvas {
                 try {
                     this.saveStateToUndo();
                     Loader.load(this, JSON.parse(event.target.result));
+                    this.designExists = true;
                     this.designState.currentFileName = file.name;
                     this.updateTitle();
                     this.updateButtonStates();
@@ -970,7 +950,7 @@ class PetriNetCanvas {
     }
 
     clearCanvas() {
-        if (!this.designState.hasDesign()) {
+        if (!this.designExists) {
             alert("No design exists to clear.");
             return;
         }
@@ -986,13 +966,16 @@ class PetriNetCanvas {
         this.selected = null;
         this.addMode = "select";
         this.drawingArc = false;
-        this.designState.setUnsavedChanges();
+        this.designExists = false;
+        this.designState.newDesign(null);
+        this.updateTitle();
         this.updateButtonStates();
         console.log("Canvas cleared");
     }
 
     toggleModel() {
         this.isSmartModel = !this.isSmartModel;
+        document.getElementById("switchBtn").classList.toggle("active", this.isSmartModel);
         document.getElementById("switchBtn").innerHTML = this.isSmartModel ?
             `<img src="assets/switch.png" alt="Switch">` :
             `<img src="assets/switch.png" alt="Switch">`;
@@ -1039,45 +1022,50 @@ class PetriNetCanvas {
 
     showMRPN() {
         const modal = document.getElementById("mrpnModal");
-        const mrpnText = document.getElementById("mrpnText");
+        const tableContainer = document.getElementById("mrpnTableContainer");
         const analyzer = new NetAnalyzer(this);
         const nets = analyzer.analyze();
-        let text = "";
+
+        tableContainer.innerHTML = "";
         nets.forEach((net, netIndex) => {
             const placeList = Array.from(net.places);
             const transitionList = Array.from(net.transitions);
             if (placeList.length === 0 || transitionList.length === 0) {
-                text += `Net ${netIndex + 1}: No design elements available.\n\n`;
+                tableContainer.innerHTML += `<p>Net ${netIndex + 1}: No design elements available.</p>`;
                 return;
             }
 
-            text += `Net ${netIndex + 1}:\nInput Matrix:\n        `;
-            transitionList.forEach(t => text += `${t.name.padEnd(6)}`);
-            text += "\n";
+            let inputTable = `<h3>Net ${netIndex + 1} - Input Matrix</h3><table><tr><th></th>`;
+            transitionList.forEach(t => inputTable += `<th>${t.name}</th>`);
+            inputTable += "</tr>";
             placeList.forEach(p => {
-                text += `${p.name.padEnd(6)}| `;
+                inputTable += `<tr><td>${p.name}</td>`;
                 transitionList.forEach(t => {
                     const weight = net.inputFunction.get(`${p.name},${t.name}`) || 0;
                     const value = this.isSmartModel ? (weight > 0 ? 1 : 0) : weight;
-                    text += `${value.toString().padEnd(6)}`;
+                    inputTable += `<td>${value}</td>`;
                 });
-                text += " |\n";
+                inputTable += "</tr>";
             });
-            text += "\nOutput Matrix:\n        ";
-            transitionList.forEach(t => text += `${t.name.padEnd(6)}`);
-            text += "\n";
+            inputTable += "</table>";
+
+            let outputTable = `<h3>Net ${netIndex + 1} - Output Matrix</h3><table><tr><th></th>`;
+            transitionList.forEach(t => outputTable += `<th>${t.name}</th>`);
+            outputTable += "</tr>";
             placeList.forEach(p => {
-                text += `${p.name.padEnd(6)}| `;
+                outputTable += `<tr><td>${p.name}</td>`;
                 transitionList.forEach(t => {
                     const weight = net.outputFunction.get(`${p.name},${t.name}`) || 0;
                     const value = this.isSmartModel ? (weight > 0 ? 1 : 0) : weight;
-                    text += `${value.toString().padEnd(6)}`;
+                    outputTable += `<td>${value}</td>`;
                 });
-                text += " |\n";
+                outputTable += "</tr>";
             });
-            text += "\n";
+            outputTable += "</table>";
+
+            tableContainer.innerHTML += inputTable + outputTable;
         });
-        mrpnText.value = text;
+
         modal.style.display = "block";
         document.querySelectorAll(".close").forEach(close => close.onclick = () => modal.style.display = "none");
         console.log("MR-PN modal opened");
@@ -1096,15 +1084,76 @@ class PetriNetCanvas {
     }
 
     insertMRPNAsNote() {
-        const mrpnText = document.getElementById("mrpnText").value;
-        if (!mrpnText) return;
+        const tableContainer = document.getElementById("mrpnTableContainer");
+        const text = tableContainer.innerText;
+        if (!text) return;
         this.saveStateToUndo();
-        const { x, y } = this.findAnnotationPosition(mrpnText);
-        this.annotations.push(new Annotation(mrpnText, x, y, "Times New Roman", 12));
+        const { x, y } = this.findAnnotationPosition(text);
+        this.annotations.push(new Annotation(text, x, y, "Times New Roman", 12));
         document.getElementById("mrpnModal").style.display = "none";
         this.designState.setUnsavedChanges();
         this.updateButtonStates();
         console.log("Inserted MR-PN as note");
+    }
+
+    regeneratePNFN(all) {
+        const analyzer = new NetAnalyzer(this);
+        const nets = analyzer.analyze();
+        let text = "";
+        nets.forEach((net, i) => {
+            if (all) net.updateInitialMarking();
+            text += `Net ${i + 1}:\n${net.toFormalNotation(this.isSmartModel)}\n\n`;
+        });
+        document.getElementById("pnfnText").value = text;
+        console.log("Regenerated PNFN:", all ? "All" : "M0 only");
+    }
+
+    regenerateMRPN(all) {
+        const tableContainer = document.getElementById("mrpnTableContainer");
+        const analyzer = new NetAnalyzer(this);
+        const nets = analyzer.analyze();
+
+        tableContainer.innerHTML = "";
+        nets.forEach((net, netIndex) => {
+            if (all) net.updateInitialMarking();
+            const placeList = Array.from(net.places);
+            const transitionList = Array.from(net.transitions);
+            if (placeList.length === 0 || transitionList.length === 0) {
+                tableContainer.innerHTML += `<p>Net ${netIndex + 1}: No design elements available.</p>`;
+                return;
+            }
+
+            let inputTable = `<h3>Net ${netIndex + 1} - Input Matrix</h3><table><tr><th></th>`;
+            transitionList.forEach(t => inputTable += `<th>${t.name}</th>`);
+            inputTable += "</tr>";
+            placeList.forEach(p => {
+                inputTable += `<tr><td>${p.name}</td>`;
+                transitionList.forEach(t => {
+                    const weight = net.inputFunction.get(`${p.name},${t.name}`) || 0;
+                    const value = this.isSmartModel ? (weight > 0 ? 1 : 0) : weight;
+                    inputTable += `<td>${value}</td>`;
+                });
+                inputTable += "</tr>";
+            });
+            inputTable += "</table>";
+
+            let outputTable = `<h3>Net ${netIndex + 1} - Output Matrix</h3><table><tr><th></th>`;
+            transitionList.forEach(t => outputTable += `<th>${t.name}</th>`);
+            outputTable += "</tr>";
+            placeList.forEach(p => {
+                outputTable += `<tr><td>${p.name}</td>`;
+                transitionList.forEach(t => {
+                    const weight = net.outputFunction.get(`${p.name},${t.name}`) || 0;
+                    const value = this.isSmartModel ? (weight > 0 ? 1 : 0) : weight;
+                    outputTable += `<td>${value}</td>`;
+                });
+                outputTable += "</tr>";
+            });
+            outputTable += "</table>";
+
+            tableContainer.innerHTML += inputTable + outputTable;
+        });
+        console.log("Regenerated MRPN:", all ? "All" : "M0 only");
     }
 
     findAnnotationPosition(text) {
@@ -1143,10 +1192,6 @@ class PetriNetCanvas {
                    const width = this.ctx.measureText(a.text.split("\n")[0]).width;
                    return this.rectIntersects(rect, a.x, a.y - a.fontSize, width, a.fontSize * a.text.split("\n").length);
                });
-    }
-
-    rectIntersects(r1, x, y, w, h) {
-        return !(r1.x + r1.width < x || x + w < r1.x || r1.y + r1.height < y || y + h < r1.y);
     }
 
     zoomIn() {
@@ -1332,7 +1377,7 @@ class PetriNetCanvas {
                 outputArcs: [...t.outputArcs],
                 task: t.task ? { task: t.task.task } : null
             })),
-            arcs: this.arcs.map(a => ({ ...a })),
+            arcs: this.arcs.map(a => ({ ...a, type: a.type })),
             initializers: this.initializers.map(i => ({ ...i })),
             annotations: this.annotations.map(a => ({ ...a })),
             selectedElements: [...this.selectedElements],
@@ -1344,7 +1389,8 @@ class PetriNetCanvas {
             arcEnd: this.arcEnd ? { ...this.arcEnd } : null,
             selectionArea: this.selectionArea ? { ...this.selectionArea } : null,
             selectionStart: this.selectionStart ? { ...this.selectionStart } : null,
-            currentFileName: this.designState.currentFileName
+            currentFileName: this.designState.currentFileName,
+            designExists: this.designExists
         });
         this.redoHistory = [];
         console.log("State saved to undo history");
@@ -1379,7 +1425,7 @@ class PetriNetCanvas {
                 outputArcs: [...t.outputArcs],
                 task: t.task ? { task: t.task.task } : null
             })),
-            arcs: this.arcs.map(a => ({ ...a })),
+            arcs: this.arcs.map(a => ({ ...a, type: a.type })),
             initializers: this.initializers.map(i => ({ ...i })),
             annotations: this.annotations.map(a => ({ ...a })),
             selectedElements: [...this.selectedElements],
@@ -1391,7 +1437,8 @@ class PetriNetCanvas {
             arcEnd: this.arcEnd ? { ...this.arcEnd } : null,
             selectionArea: this.selectionArea ? { ...this.selectionArea } : null,
             selectionStart: this.selectionStart ? { ...this.selectionStart } : null,
-            currentFileName: this.designState.currentFileName
+            currentFileName: this.designState.currentFileName,
+            designExists: this.designExists
         };
     }
 
@@ -1413,7 +1460,7 @@ class PetriNetCanvas {
                           this.initializers[this.initializers.findIndex(i => i.name === a.start.name)];
             const end = a.end instanceof Place ? this.places[this.places.findIndex(p => p.name === a.end.name)] :
                         this.transitions[this.transitions.findIndex(t => t.name === a.end.name)];
-            return new Arc(start, end, a.isInput);
+            return new Arc(start, end, a.isInput, a.type);
         });
         this.transitions.forEach((t, i) => {
             t.inputArcs = state.transitions[i].inputArcs.map(a => ({ 
@@ -1449,48 +1496,36 @@ class PetriNetCanvas {
         this.selectionArea = state.selectionArea ? { ...state.selectionArea } : null;
         this.selectionStart = state.selectionStart ? new Point(state.selectionStart.x, state.selectionStart.y) : null;
         this.designState.currentFileName = state.currentFileName;
+        this.designExists = state.designExists;
         console.log("State restored");
     }
 
-    changeAnnotationColor() {
+    changeAnnotationColor(color) {
         if (this.addMode === "select" && this.selected instanceof Annotation) {
             this.saveStateToUndo();
-            const color = prompt("Enter color (e.g., red, #FF0000):", this.selected.color);
-            if (color) {
-                this.selectedElements.forEach(elem => {
-                    if (elem instanceof Annotation) elem.color = color;
-                });
-                this.designState.setUnsavedChanges();
-                this.updateButtonStates();
-                console.log("Annotation color changed");
-            }
-        }
-    }
-
-    changeAnnotationFont() {
-        if (this.addMode === "select" && this.selected instanceof Annotation) {
-            this.saveStateToUndo();
-            const fonts = ["Arial", "Times New Roman", "Courier New", "Verdana", "Helvetica"];
-            const fontName = prompt("Enter font name (" + fonts.join(", ") + "):", this.selected.fontName) || this.selected.fontName;
-            const fontSize = prompt("Enter font size:", this.selected.fontSize) || this.selected.fontSize;
             this.selectedElements.forEach(elem => {
-                if (elem instanceof Annotation) {
-                    elem.fontName = fonts.includes(fontName) ? fontName : elem.fontName;
-                    try {
-                        elem.fontSize = parseInt(fontSize);
-                    } catch (ex) {
-                        console.log("Invalid font size input");
-                    }
-                }
+                if (elem instanceof Annotation) elem.color = color;
             });
             this.designState.setUnsavedChanges();
             this.updateButtonStates();
-            console.log("Annotation font changed");
+            console.log("Annotation color changed to:", color);
+        }
+    }
+
+    changeAnnotationFont(font) {
+        if (this.addMode === "select" && this.selected instanceof Annotation) {
+            this.saveStateToUndo();
+            this.selectedElements.forEach(elem => {
+                if (elem instanceof Annotation) elem.fontName = font;
+            });
+            this.designState.setUnsavedChanges();
+            this.updateButtonStates();
+            console.log("Annotation font changed to:", font);
         }
     }
 
     updateButtonStates() {
-        const hasDesign = this.designState.hasDesign() && 
+        const hasDesign = this.designExists && 
                          (this.places.length > 0 || this.transitions.length > 0 || 
                           this.arcs.length > 0 || this.initializers.length > 0 || 
                           this.annotations.length > 0);
@@ -1503,14 +1538,18 @@ class PetriNetCanvas {
         document.getElementById("clearBtn").disabled = !hasDesign;
         document.getElementById("pnfnBtn").disabled = !hasDesign;
         document.getElementById("mrpnBtn").disabled = !hasDesign;
-        console.log("Updated button states. Has design:", hasDesign);
+        document.getElementById("placeBtn").disabled = !this.designExists;
+        document.getElementById("transitionBtn").disabled = !this.designExists;
+        document.getElementById("iniBtn").disabled = !this.designExists;
+        document.getElementById("arcBtn").disabled = !this.designExists;
+        document.getElementById("annotateBtn").disabled = !this.designExists;
+        console.log("Updated button states. Has design:", hasDesign, "Design exists:", this.designExists);
     }
 
     updateTitle() {
         document.title = `Petri Net Simulator - ${this.designState.currentFileName || "Untitled"}${this.designState.hasUnsavedChanges() ? " (unsaved changes *)" : " (saved)"}`;
     }
 }
-
 
 // Initialize the canvas after DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {

@@ -6,11 +6,11 @@ body {
 }
 
 #toolbar {
-    height: 60px;
+    height: 80px;
     background-color: #ffffff;
     display: flex;
     align-items: center;
-    gap: 10px; /* Increased gap for spacing */
+    gap: 10px;
     padding: 8px 16px;
     border-bottom: 2px solid #e0e0e0;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -22,23 +22,24 @@ body {
     width: 50px;
     background-color: #ffffff;
     position: absolute;
-    top: 60px;
+    top: 80px;
     left: 0;
     display: flex;
     flex-direction: column;
     gap: 12px;
     padding: 10px;
-    height: calc(100% - 60px);
+    height: calc(100% - 80px);
     border-right: 2px solid #e0e0e0;
     box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+    overflow-y: hidden;
 }
 
 #petriCanvas {
     position: absolute;
-    top: 60px;
+    top: 80px;
     left: 50px;
     width: calc(100% - 50px);
-    height: calc(100% - 60px);
+    height: calc(100% - 80px);
     background-color: #ffffff;
 }
 
@@ -64,7 +65,7 @@ button {
     background: none;
     cursor: pointer;
     transition: background-color 0.2s;
-    position: relative; /* For tooltip positioning */
+    position: relative;
 }
 
 button:hover {
@@ -91,11 +92,10 @@ button.active {
     border-radius: 4px;
 }
 
-/* Tooltip styling */
 button[title]:hover:after {
     content: attr(title);
     position: absolute;
-    top: 100%;
+    top: calc(100% + 5px);
     left: 50%;
     transform: translateX(-50%);
     background-color: #333;
@@ -105,6 +105,19 @@ button[title]:hover:after {
     font-size: 12px;
     white-space: nowrap;
     z-index: 1000;
+}
+
+select {
+    height: 40px;
+    padding: 0 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background-color: #fff;
+    cursor: pointer;
+}
+
+select:hover {
+    background-color: #f0f0f0;
 }
 
 .modal {
@@ -132,6 +145,13 @@ button[title]:hover:after {
     font-size: 14px;
 }
 
+.modal-buttons {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-start;
+}
+
 .close {
     color: #aaa;
     float: right;
@@ -151,4 +171,22 @@ textarea {
     border: 1px solid #ddd;
     border-radius: 4px;
     padding: 8px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+}
+
+td, th {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
+
+th {
+    background-color: #f2f2f2;
 }

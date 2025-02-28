@@ -32,22 +32,30 @@ class Place {
     }
 
     draw(ctx, selected, iconSize, tokenSize) {
-        const img = selected ? canvas.icons.place : canvas.icons.place;
+        const img = canvas.icons.place;
         if (!img) {
             console.error("Place icon not loaded!");
             return;
         }
         ctx.drawImage(img, this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
+        if (selected) {
+            ctx.fillStyle = "rgba(255, 255, 0, 0.3)"; // Highlight fill
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, iconSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
         ctx.fillStyle = "black";
         const visibleTokens = Math.min(this.tokens, 2);
         for (let i = 0; i < visibleTokens; i++) {
-            const tokenX = this.x - tokenSize / 2 + (i - visibleTokens / 2) * tokenSize;
-            const tokenY = this.y - tokenSize / 2;
+            const tokenX = this.x - tokenSize + (i * tokenSize); // Center tokens inside circle
+            const tokenY = this.y - tokenSize / 4;
             ctx.beginPath();
             ctx.arc(tokenX, tokenY, tokenSize / 2, 0, Math.PI * 2);
             ctx.fill();
         }
-        if (this.tokens > 2) ctx.fillText("+", this.x + iconSize / 4, this.y + 5);
+        if (this.tokens > 2) {
+            ctx.fillText("+", this.x + 5, this.y + 5); // Inside circle
+        }
         ctx.fillText(this.name, this.x - ctx.measureText(this.name).width / 2, this.y + iconSize / 2 + 15);
     }
 }
@@ -112,7 +120,7 @@ class Transition {
                         animations.push(new TokenAnimation(this.x, this.y, a.place.x, a.place.y, a.place));
                     }
                 });
-            }, 500);
+            }, 500); // Animation delay
         }
     }
 
@@ -133,12 +141,16 @@ class Transition {
     }
 
     draw(ctx, selected, iconSize) {
-        const img = selected ? canvas.icons.transition : (this.active ? canvas.icons.transition : canvas.icons.transition);
+        const img = canvas.icons.transition;
         if (!img) {
             console.error("Transition icon not loaded!");
             return;
         }
         ctx.drawImage(img, this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
+        if (selected) {
+            ctx.fillStyle = "rgba(255, 255, 0, 0.3)"; // Highlight fill
+            ctx.fillRect(this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
+        }
         ctx.fillStyle = "black";
         ctx.fillText(this.name, this.x - ctx.measureText(this.name).width / 2, this.y + iconSize / 2 + 15);
     }
@@ -146,10 +158,11 @@ class Transition {
 
 // Arc class
 class Arc {
-    constructor(start, end, isInput) {
+    constructor(start, end, isInput, type = "line") {
         this.start = start;
         this.end = end;
         this.isInput = isInput;
+        this.type = type; // Line, flexible, 90degree
     }
 
     getWeight() {
@@ -168,22 +181,38 @@ class Arc {
         const startY = this.start.y;
         const endX = this.end.x;
         const endY = this.end.y;
-        const angle = Math.atan2(endY - startY, endX - startX);
         const offset = iconSize / 2;
-        const adjStartX = startX + offset * Math.cos(angle);
-        const adjStartY = startY + offset * Math.sin(angle);
-        const adjEndX = endX - offset * Math.cos(angle);
-        const adjEndY = endY - offset * Math.sin(angle);
+        const adjStartX = startX + offset * Math.cos(Math.atan2(endY - startY, endX - startX));
+        const adjStartY = startY + offset * Math.sin(Math.atan2(endY - startY, endX - startX));
+        const adjEndX = endX - offset * Math.cos(Math.atan2(endY - startY, endX - startX));
+        const adjEndY = endY - offset * Math.sin(Math.atan2(endY - startY, endX - startX));
 
         ctx.strokeStyle = this.isInput ? "blue" : (this.start instanceof Initializer ? "magenta" : "red");
         if (this.end instanceof Transition && this.end.active) ctx.strokeStyle = "green";
         ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(adjStartX, adjStartY);
-        ctx.lineTo(adjEndX, adjEndY);
-        ctx.stroke();
+
+        if (this.type === "line") {
+            ctx.beginPath();
+            ctx.moveTo(adjStartX, adjStartY);
+            ctx.lineTo(adjEndX, adjEndY);
+            ctx.stroke();
+        } else if (this.type === "flexible") {
+            const midX = (adjStartX + adjEndX) / 2;
+            const midY = (adjStartY + adjEndY) / 2 + Math.abs(adjEndX - adjStartX) / 4; // Flexible curve
+            ctx.beginPath();
+            ctx.moveTo(adjStartX, adjStartY);
+            ctx.quadraticCurveTo(midX, midY, adjEndX, adjEndY);
+            ctx.stroke();
+        } else if (this.type === "90degree") {
+            ctx.beginPath();
+            ctx.moveTo(adjStartX, adjStartY);
+            ctx.lineTo(adjEndX, adjStartY); // Horizontal
+            ctx.lineTo(adjEndX, adjEndY);   // Vertical
+            ctx.stroke();
+        }
 
         const arrowSize = 10;
+        const angle = Math.atan2(adjEndY - adjStartY, adjEndX - adjStartX);
         const arrowX = adjEndX;
         const arrowY = adjEndY;
         ctx.beginPath();
@@ -222,12 +251,18 @@ class Initializer {
     }
 
     draw(ctx, selected, iconSize) {
-        const img = selected ? canvas.icons.ini : (this.isGenerating ? canvas.icons.ini : canvas.icons.ini);
+        const img = canvas.icons.ini;
         if (!img) {
             console.error("Initializer icon not loaded!");
             return;
         }
         ctx.drawImage(img, this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
+        if (selected) {
+            ctx.fillStyle = "rgba(255, 255, 0, 0.3)"; // Highlight fill
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, iconSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
         ctx.fillStyle = "black";
         ctx.fillText(this.name, this.x - ctx.measureText(this.name).width / 2, this.y + iconSize / 2 + 15);
     }
@@ -351,9 +386,8 @@ class Annotation {
         if (selected) {
             const width = Math.max(...lines.map(line => ctx.measureText(line).width));
             const height = this.fontSize * lines.length;
-            ctx.strokeStyle = "rgba(255, 255, 153, 0.5)";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(this.x - 5, this.y - this.fontSize - 5, width + 10, height + 10);
+            ctx.fillStyle = "rgba(255, 255, 0, 0.3)"; // Highlight fill
+            ctx.fillRect(this.x - 5, this.y - this.fontSize - 5, width + 10, height + 10);
         }
     }
 }

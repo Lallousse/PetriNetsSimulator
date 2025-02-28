@@ -14,6 +14,11 @@
         <button id="transitionBtn" title="Transition"><img src="assets/transition.png" alt="Transition"></button>
         <button id="iniBtn" title="Initializer"><img src="assets/ini.png" alt="Initializer"></button>
         <button id="arcBtn" title="Arc"><img src="assets/arc.png" alt="Arc"></button>
+        <select id="arcTypeSelect" title="Arc Type" style="height: 40px;">
+            <option value="line">Line</option>
+            <option value="flexible">Flexible Arc</option>
+            <option value="90degree">90-Degree Line</option>
+        </select>
         <button id="deleteBtn" title="Delete"><img src="assets/delete.png" alt="Delete"></button>
         <button id="plusTokenBtn" title="+Token"><img src="assets/plus.png" alt="+Token"></button>
         <button id="minusTokenBtn" title="-Token"><img src="assets/minus.png" alt="-Token"></button>
@@ -27,8 +32,20 @@
         <button id="switchBtn" title="Switch Model"><img src="assets/switch.png" alt="Switch"></button>
         <button id="guideBtn" title="Guide"><img src="assets/guide.png" alt="Guide"></button>
         <button id="annotateBtn" title="Annotate"><img src="assets/note.png" alt="Annotate"></button>
-        <button id="colorBtn" title="Color"><img src="assets/color.png" alt="Color"></button>
-        <button id="fontBtn" title="Font"><img src="assets/font.png" alt="Font"></button>
+        <select id="colorSelect" title="Color" style="height: 40px;">
+            <option value="black">Black</option>
+            <option value="red">Red</option>
+            <option value="blue">Blue</option>
+            <option value="green">Green</option>
+            <option value="#FF00FF">Magenta</option>
+        </select>
+        <select id="fontSelect" title="Font" style="height: 40px;">
+            <option value="Arial">Arial</option>
+            <option value="Times New Roman">Times New Roman</option>
+            <option value="Courier New">Courier New</option>
+            <option value="Verdana">Verdana</option>
+            <option value="Helvetica">Helvetica</option>
+        </select>
         <button id="pnfnBtn" title="PN-FN"><img src="assets/pnfn.png" alt="PN-FN"></button>
         <button id="mrpnBtn" title="MR-PN"><img src="assets/mrpn.png" alt="MR-PN"></button>
     </header>
@@ -48,14 +65,22 @@
         <div class="modal-content">
             <span class="close">×</span>
             <textarea id="pnfnText" readonly style="width: 100%; height: 300px;"></textarea>
-            <button id="pnfnInsertBtn">Insert as Note</button>
+            <div class="modal-buttons">
+                <button id="pnfnInsertBtn">Insert as Note</button>
+                <button id="pnfnRegenerateAllBtn">Regenerate All</button>
+                <button id="pnfnRegenerateM0Btn">Regenerate M0</button>
+            </div>
         </div>
     </div>
     <div id="mrpnModal" class="modal">
         <div class="modal-content">
             <span class="close">×</span>
-            <textarea id="mrpnText" readonly style="width: 100%; height: 300px;"></textarea>
-            <button id="mrpnInsertBtn">Insert as Note</button>
+            <div id="mrpnTableContainer"></div>
+            <div class="modal-buttons">
+                <button id="mrpnInsertBtn">Insert as Note</button>
+                <button id="mrpnRegenerateAllBtn">Regenerate All</button>
+                <button id="mrpnRegenerateM0Btn">Regenerate M0</button>
+            </div>
         </div>
     </div>
     <script src="utils.js"></script>
