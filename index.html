@@ -77,6 +77,10 @@
     </div>
     <canvas id="petriCanvas"></canvas>
     <div id="speedLabel">Speed: 1x</div>
+    <div id="statusBar">
+        <span id="statusText">Ready</span>
+        <span id="modelStatus">T-Model</span>
+    </div>
     <div id="guideModal" class="modal">
         <div class="modal-content">
             <span class="close">×</span>
@@ -103,14 +107,6 @@
                 <button id="mrpnRegenerateAllBtn">Regenerate All</button>
                 <button id="mrpnRegenerateM0Btn">Regenerate M0</button>
             </div>
-        </div>
-    </div>
-    <div id="loadModal" class="modal">
-        <div class="modal-content">
-            <span class="close">×</span>
-            <h3>Load JSON Design</h3>
-            <textarea id="loadJsonText" style="width: 100%; height: 200px;"></textarea>
-            <button id="loadJsonBtn">Load</button>
         </div>
     </div>
     <script src="utils.js"></script>

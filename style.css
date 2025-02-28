@@ -6,48 +6,47 @@ body {
 }
 
 #toolbar {
-    height: 80px;
+    height: 60px; /* Reduced height for better fit */
     background-color: #ffffff;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     padding: 8px 16px;
     border-bottom: 2px solid #e0e0e0;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     overflow-x: auto;
     white-space: nowrap;
-    position: fixed; /* Fix to top */
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
-    z-index: 1000; /* Above everything */
+    z-index: 1000;
 }
 
 #zoom-panel {
     width: 50px;
-    background-color: #ffffff;
-    position: fixed; /* Fix to left */
-    top: 80px; /* Below toolbar */
+    background-color: #f0f0f0;
+    position: fixed;
+    top: 60px; /* Adjusted for toolbar height */
     left: 0;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     padding: 10px;
-    height: calc(100% - 80px); /* Adjust for toolbar height */
+    height: calc(100% - 90px); /* Account for toolbar and status bar */
     border-right: 2px solid #e0e0e0;
     box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
-    overflow-y: hidden;
-    z-index: 900; /* Below toolbar but above canvas */
+    z-index: 900;
 }
 
 #petriCanvas {
     position: absolute;
-    top: 80px; /* Below toolbar */
-    left: 50px; /* Right of zoom panel */
+    top: 60px;
+    left: 50px;
     width: calc(100% - 50px);
-    height: calc(100% - 80px);
+    height: calc(100% - 90px); /* Account for toolbar and status bar */
     background-color: #ffffff;
-    z-index: 500; /* Below toolbar and zoom panel */
+    z-index: 500;
 }
 
 #speedLabel {
@@ -59,15 +58,39 @@ body {
     background: rgba(255, 255, 255, 0.8);
     padding: 4px 8px;
     border-radius: 4px;
-    z-index: 1100; /* Above toolbar */
+    z-index: 1100;
+}
+
+#statusBar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 30px;
+    background-color: #333;
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 10px;
+    z-index: 1000;
+}
+
+#statusText {
+    font-size: 12px;
+}
+
+#modelStatus {
+    font-size: 12px;
+    font-weight: bold;
 }
 
 button {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 36px; /* Slightly smaller */
+    height: 36px;
     padding: 0;
     border: none;
     background: none;
@@ -82,8 +105,8 @@ button:hover {
 }
 
 button img {
-    width: 32px;
-    height: 32px;
+    width: 28px; /* Adjusted for smaller buttons */
+    height: 28px;
 }
 
 button:disabled img {
@@ -112,7 +135,7 @@ button[title]:hover:after {
     border-radius: 4px;
     font-size: 12px;
     white-space: nowrap;
-    z-index: 1001; /* Above toolbar */
+    z-index: 1100;
 }
 
 .dropdown {
@@ -124,22 +147,22 @@ button[title]:hover:after {
     display: none;
     position: absolute;
     background-color: #fff;
-    min-width: 150px; /* Wider for better spacing */
+    min-width: 160px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    z-index: 1001; /* Above toolbar and canvas */
+    z-index: 1100; /* Above all */
     border-radius: 4px;
     top: 100%;
     left: 0;
-    padding: 10px; /* More breathing room */
+    padding: 10px;
 }
 
 .dropdown-content button {
     width: 100%;
-    height: 35px; /* Taller for comfort */
+    height: 32px;
     padding: 5px 10px;
     text-align: left;
     border-radius: 4px;
-    margin-bottom: 5px; /* Space between items */
+    margin-bottom: 5px;
 }
 
 .dropdown-content button:hover {
@@ -147,16 +170,14 @@ button[title]:hover:after {
 }
 
 .dropdown-content.color-palette {
-    display: none;
-    padding: 10px;
-    min-width: 180px; /* Wider palette */
+    min-width: 180px;
 }
 
 .color-option {
     display: inline-block;
-    width: 25px; /* Larger squares */
-    height: 25px;
-    margin: 5px; /* More spacing */
+    width: 24px;
+    height: 24px;
+    margin: 4px;
     border: 1px solid #ddd;
     cursor: pointer;
 }
@@ -166,14 +187,12 @@ button[title]:hover:after {
 }
 
 .dropdown-content.font-picker {
-    display: none;
-    padding: 10px;
-    min-width: 220px; /* Wider for select elements */
+    min-width: 200px;
 }
 
 #fontFamilySelect, #fontSizeSelect {
     width: 100%;
-    margin-bottom: 10px; /* Space between selects */
+    margin-bottom: 10px;
     padding: 5px;
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -191,7 +210,7 @@ button[title]:hover:after {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
-    z-index: 2000; /* Above everything */
+    z-index: 2000;
 }
 
 .modal-content {
@@ -251,18 +270,44 @@ textarea {
     box-sizing: border-box;
 }
 
-table {
+table.mrpn-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     margin-bottom: 10px;
 }
 
-td, th {
-    border: 1px solid #ddd;
+.mrpn-table td, .mrpn-table th {
     padding: 8px;
     text-align: center;
+    font-family: 'Monospaced', monospace;
 }
 
-th {
+.mrpn-table th {
     background-color: #f2f2f2;
+    border: none;
+}
+
+.mrpn-table td {
+    border: none;
+}
+
+.mrpn-table td:first-child {
+    border-right: 1px solid #000;
+}
+
+.mrpn-table td:not(:first-child):not(:last-child) {
+    border: none;
+}
+
+.mrpn-table td:last-child {
+    border-left: 1px solid #000;
+}
+
+.mrpn-table tr:first-child td:not(:first-child) {
+    border-top: 1px solid #000;
+}
+
+.mrpn-table tr:last-child td:not(:first-child) {
+    border-bottom: 1px solid #000;
 }

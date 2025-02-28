@@ -46,7 +46,8 @@ class Place {
         }
 
         ctx.fillStyle = "black";
-        const radius = iconSize / 2 - 4; // Space inside circle
+        const radius = iconSize / 2 - 4;
+        tokenSize = 6; // Reduced size for first 4 tokens (Adjustment 4)
         if (this.tokens === 1) {
             ctx.beginPath();
             ctx.arc(this.x, this.y, tokenSize / 2, 0, Math.PI * 2);
@@ -101,7 +102,7 @@ class Place {
     }
 }
 
-// Transition class
+// Transition class (unchanged except for reference)
 class Transition {
     constructor(name, x, y) {
         this.name = name;
@@ -161,7 +162,7 @@ class Transition {
                         animations.push(new TokenAnimation(this.x, this.y, a.place.x, a.place.y, a.place));
                     }
                 });
-            }, 1000); // Slower animation
+            }, 2000); // Slower for visibility (Adjustment 2)
         }
     }
 
@@ -176,7 +177,7 @@ class Transition {
                     this.outputArcs.forEach(a => {
                         animations.push(new TokenAnimation(this.x, this.y, a.place.x, a.place.y, a.place, null, result));
                     });
-                }, delay > 0 ? delay : 1000);
+                }, delay > 0 ? delay : 2000); // Slower (Adjustment 2)
             }
         }
     }
@@ -197,7 +198,7 @@ class Transition {
     }
 }
 
-// Arc class
+// Arc class (unchanged except for reference)
 class Arc {
     constructor(start, end, isInput, type = "line") {
         this.start = start;
@@ -205,7 +206,7 @@ class Arc {
         this.isInput = isInput;
         this.type = type;
         this.controlPoints = this.type === "flexible" ? [{ x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 }] : [];
-        this.weight = 1; // Default weight
+        this.weight = 1;
     }
 
     getWeight() {
@@ -240,7 +241,7 @@ class Arc {
         } else if (this.type === "flexible") {
             const cp = this.controlPoints[0];
             const dist = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
-            cp.y = Math.min(adjStartY, adjEndY) - dist / 4; // Dynamic radius
+            cp.y = Math.min(adjStartY, adjEndY) - dist / 4;
             ctx.beginPath();
             ctx.moveTo(adjStartX, adjStartY);
             ctx.quadraticCurveTo(cp.x, cp.y, adjEndX, adjEndY);
@@ -287,7 +288,7 @@ class Arc {
     }
 }
 
-// Initializer class
+// Initializer class (unchanged)
 class Initializer {
     constructor(name, x, y, tokensToGenerate = 0, tokensPerSecond = 1.0, isContinuous = false, tokenValue = 0) {
         this.name = name;
@@ -321,7 +322,7 @@ class Initializer {
     }
 }
 
-// Point class
+// Point class (unchanged)
 class Point {
     constructor(x, y) {
         this.x = x;
@@ -329,14 +330,14 @@ class Point {
     }
 }
 
-// SmartToken class
+// SmartToken class (unchanged)
 class SmartToken {
     constructor(value) {
         this.value = value;
     }
 }
 
-// TransitionTask class
+// TransitionTask class (unchanged)
 class TransitionTask {
     constructor(task) {
         this.task = task || "gate";
@@ -383,7 +384,7 @@ class TransitionTask {
     }
 }
 
-// TokenAnimation class
+// TokenAnimation class (unchanged)
 class TokenAnimation {
     constructor(startX, startY, endX, endY, targetPlace, sourcePlace = null, smartToken = null) {
         this.startX = startX;
@@ -416,7 +417,7 @@ class TokenAnimation {
     }
 }
 
-// Annotation class
+// Annotation class (unchanged)
 class Annotation {
     constructor(text, x, y, fontName = "Arial", fontSize = 12, color = "black", strokeWeight = 1) {
         this.text = text;
