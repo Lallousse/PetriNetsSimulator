@@ -75,11 +75,34 @@
         <span id="statusText">Ready</span>
         <span id="modelStatus">T-Model</span>
     </div>
+    <div id="pnfnModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <textarea id="pnfnText" readonly style="width: 100%; height: 300px;"></textarea>
+            <div class="modal-buttons">
+                <button id="pnfnInsertBtn">Insert as Note</button>
+                <button id="pnfnRegenerateAllBtn">Regenerate All</button>
+                <button id="pnfnRegenerateM0Btn">Regenerate M0</button>
+            </div>
+        </div>
+    </div>
+    <div id="mrpnModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <div id="mrpnTableContainer"></div>
+            <div class="modal-buttons">
+                <button id="mrpnInsertBtn">Insert as Note</button>
+                <button id="mrpnRegenerateAllBtn">Regenerate All</button>
+                <button id="mrpnRegenerateM0Btn">Regenerate M0</button>
+            </div>
+        </div>
+    </div>
     <script src="utils.js"></script>
     <script src="elements.js"></script>
     <script src="core.js"></script>
     <script src="designLoader.js"></script>
     <script src="netAnalyzer.js"></script>
+    <script src="transitionTasks.js"></script>
     <script src="petriNetCanvas.js"></script>
 </body>
 </html>

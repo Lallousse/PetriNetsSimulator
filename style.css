@@ -155,12 +155,12 @@ body {
     padding: 10px;
     transform: translateX(100%);
     opacity: 0;
-    pointer-events: none; /* Prevent interaction when hidden */
+    pointer-events: none;
     transition: transform 0.3s ease, opacity 0.2s ease;
 }
 
 .dropdown:hover .dropdown-content,
-.dropdown:focus-within .dropdown-content { /* Show only on hover/focus of dropdown */
+.dropdown:focus-within .dropdown-content {
     transform: translateX(0);
     opacity: 1;
     pointer-events: auto;
@@ -226,11 +226,11 @@ body {
 
 .modal-content {
     background-color: white;
-    margin: 10% auto;
+    margin: 0 auto; /* Remove auto margin for dragging */
     padding: 20px;
     border-radius: 8px;
     width: 80%;
-    max-width: 800px;
+    max-width: 600px; /* Consistent width */
     max-height: 80vh;
     overflow-y: auto;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -241,8 +241,9 @@ body {
 .modal-buttons {
     margin-top: 10px;
     display: flex;
-    gap: 15px;
+    gap: 10px; /* Consistent spacing */
     justify-content: flex-start;
+    align-items: center;
 }
 
 .modal-buttons button {
@@ -314,18 +315,9 @@ th {
     background-color: #4CAF50;
     color: white;
     border: none;
+    padding: 8px 16px; /* Consistent padding */
 }
 
 .modal-btn.save-btn:hover {
     background-color: #45a049;
-}
-
-.modal-btn.pin-btn {
-    background-color: #2196F3;
-    color: white;
-    border: none;
-}
-
-.modal-btn.pin-btn:hover {
-    background-color: #1976D2;
 }

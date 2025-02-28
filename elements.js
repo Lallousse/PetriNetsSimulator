@@ -1,4 +1,3 @@
-// Place class
 class Place {
     constructor(name, x, y, tokens = 0) {
         this.name = name;

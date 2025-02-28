@@ -284,7 +284,7 @@ class PetriNetCanvas {
             }
             document.body.removeChild(input);
             this.editingElement = null;
-            this.setMode("select"); // Ensure mode switches to select
+            this.setMode("select");
             this.updateButtonStates();
         };
 
@@ -323,6 +323,7 @@ class PetriNetCanvas {
         content.style.position = "absolute";
         content.style.left = "50%";
         content.style.top = "50%";
+        content.style.transform = "translate(-50%, -50%)";
         content.style.backgroundColor = "#fff";
         content.style.padding = "20px";
         content.style.borderRadius = "8px";
@@ -365,8 +366,9 @@ class PetriNetCanvas {
 
         const pinBtn = document.createElement("button");
         pinBtn.textContent = "Pin";
-        pinBtn.className = "modal-btn pin-btn";
-        pinBtn.style.padding = "5px 10px";
+        pinBtn.className = "modal-btn save-btn"; // Match save button style
+        pinBtn.style.padding = "8px 16px"; // Match save button padding
+        pinBtn.style.marginLeft = "10px"; // Add spacing from other buttons
         pinBtn.onclick = () => {
             modal.style.backgroundColor = "transparent";
             modal.style.pointerEvents = "none";
@@ -478,31 +480,23 @@ class PetriNetCanvas {
 
         content.appendChild(header);
         content.appendChild(form);
-        content.appendChild(pinBtn);
         content.appendChild(saveBtn);
+        content.appendChild(pinBtn); // Add pinBtn after saveBtn for layout
         modal.appendChild(content);
         document.body.appendChild(modal);
 
-        // Dragging logic
-        let offsetX, offsetY, isDragging = false;
+        let offsetX, offsetY;
         header.onmousedown = (e) => {
             if (e.target !== header) return;
             const rect = content.getBoundingClientRect();
             offsetX = e.clientX - rect.left;
             offsetY = e.clientY - rect.top;
-            isDragging = true;
-            content.style.transition = "none"; // Smooth dragging
             document.onmousemove = (e) => {
-                if (isDragging) {
-                    const newLeft = e.clientX - offsetX;
-                    const newTop = e.clientY - offsetY;
-                    content.style.left = `${newLeft}px`;
-                    content.style.top = `${newTop}px`;
-                    content.style.transform = "none"; // Remove transform for accurate positioning
-                }
+                content.style.left = `${e.clientX - offsetX}px`;
+                content.style.top = `${e.clientY - offsetY}px`;
+                content.style.transform = "none";
             };
             document.onmouseup = () => {
-                isDragging = false;
                 document.onmousemove = null;
                 document.onmouseup = null;
             };
@@ -542,6 +536,7 @@ class PetriNetCanvas {
             content.style.position = "absolute";
             content.style.left = "50%";
             content.style.top = "50%";
+            content.style.transform = "translate(-50%, -50%)";
             content.style.backgroundColor = "#fff";
             content.style.padding = "20px";
             content.style.borderRadius = "8px";
@@ -594,6 +589,7 @@ class PetriNetCanvas {
             controlPanel.style.display = "flex";
             controlPanel.style.justifyContent = "space-between";
             controlPanel.style.marginTop = "10px";
+            controlPanel.style.gap = "10px"; // Add spacing between button groups
 
             const buttonPanel = document.createElement("div");
             buttonPanel.style.display = "flex";
@@ -645,7 +641,8 @@ class PetriNetCanvas {
 
             const pinBtn = document.createElement("button");
             pinBtn.textContent = "Pin";
-            pinBtn.className = "modal-btn pin-btn";
+            pinBtn.className = "modal-btn save-btn"; // Match save button style
+            pinBtn.style.padding = "8px 16px"; // Match save button padding
             pinBtn.onclick = () => {
                 modal.style.backgroundColor = "transparent";
                 modal.style.pointerEvents = "none";
@@ -664,25 +661,18 @@ class PetriNetCanvas {
             modal.appendChild(content);
             document.body.appendChild(modal);
 
-            let offsetX, offsetY, isDragging = false;
+            let offsetX, offsetY;
             header.onmousedown = (e) => {
                 if (e.target !== header) return;
                 const rect = content.getBoundingClientRect();
                 offsetX = e.clientX - rect.left;
                 offsetY = e.clientY - rect.top;
-                isDragging = true;
-                content.style.transition = "none";
                 document.onmousemove = (e) => {
-                    if (isDragging) {
-                        const newLeft = e.clientX - offsetX;
-                        const newTop = e.clientY - offsetY;
-                        content.style.left = `${newLeft}px`;
-                        content.style.top = `${newTop}px`;
-                        content.style.transform = "none";
-                    }
+                    content.style.left = `${e.clientX - offsetX}px`;
+                    content.style.top = `${e.clientY - offsetY}px`;
+                    content.style.transform = "none";
                 };
                 document.onmouseup = () => {
-                    isDragging = false;
                     document.onmousemove = null;
                     document.onmouseup = null;
                 };
@@ -718,6 +708,7 @@ class PetriNetCanvas {
             content.style.position = "absolute";
             content.style.left = "50%";
             content.style.top = "50%";
+            content.style.transform = "translate(-50%, -50%)";
             content.style.backgroundColor = "#fff";
             content.style.padding = "20px";
             content.style.borderRadius = "8px";
@@ -869,6 +860,7 @@ class PetriNetCanvas {
             controlPanel.style.display = "flex";
             controlPanel.style.justifyContent = "space-between";
             controlPanel.style.marginTop = "10px";
+            controlPanel.style.gap = "10px";
 
             const buttonPanel = document.createElement("div");
             buttonPanel.style.display = "flex";
@@ -1026,7 +1018,8 @@ class PetriNetCanvas {
 
             const pinBtn = document.createElement("button");
             pinBtn.textContent = "Pin";
-            pinBtn.className = "modal-btn pin-btn";
+            pinBtn.className = "modal-btn save-btn"; // Match save button style
+            pinBtn.style.padding = "8px 16px"; // Match save button padding
             pinBtn.onclick = () => {
                 modal.style.backgroundColor = "transparent";
                 modal.style.pointerEvents = "none";
@@ -1044,25 +1037,18 @@ class PetriNetCanvas {
             modal.appendChild(content);
             document.body.appendChild(modal);
 
-            let offsetX, offsetY, isDragging = false;
+            let offsetX, offsetY;
             header.onmousedown = (e) => {
                 if (e.target !== header) return;
                 const rect = content.getBoundingClientRect();
                 offsetX = e.clientX - rect.left;
                 offsetY = e.clientY - rect.top;
-                isDragging = true;
-                content.style.transition = "none";
                 document.onmousemove = (e) => {
-                    if (isDragging) {
-                        const newLeft = e.clientX - offsetX;
-                        const newTop = e.clientY - offsetY;
-                        content.style.left = `${newLeft}px`;
-                        content.style.top = `${newTop}px`;
-                        content.style.transform = "none";
-                    }
+                    content.style.left = `${e.clientX - offsetX}px`;
+                    content.style.top = `${e.clientY - offsetY}px`;
+                    content.style.transform = "none";
                 };
                 document.onmouseup = () => {
-                    isDragging = false;
                     document.onmousemove = null;
                     document.onmouseup = null;
                 };
@@ -1295,7 +1281,7 @@ class PetriNetCanvas {
             const annotation = this.getAnnotationAt(x, y);
             if (!(elem === this.editingElement || arc === this.editingElement || annotation === this.editingElement)) {
                 this.finishEditing(true);
-                this.setMode("select"); // Ensure mode switches to prevent retrigger
+                this.setMode("select");
             }
         }
     }
@@ -1533,7 +1519,6 @@ class PetriNetCanvas {
     }
 
     showGuide() {
-        // Remove existing guide modal if it exists
         const existingModal = document.getElementById("guideModal");
         if (existingModal) existingModal.remove();
 
@@ -1559,7 +1544,7 @@ class PetriNetCanvas {
         content.style.padding = "20px";
         content.style.borderRadius = "8px";
         content.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
-        content.style.width = "400px";
+        content.style.width = "500px"; // Increased width for better readability
         content.style.maxWidth = "90vw";
         content.style.maxHeight = "80vh";
         content.style.overflowY = "auto";
@@ -1589,11 +1574,29 @@ class PetriNetCanvas {
             - Input arc weights: Number of tokens required to enable transition.<br>
             - Output arc weights: Number of tokens produced per firing to output places.<br>
         `;
+        guideText.style.fontSize = "14px"; // Consistent with other modals
 
         content.appendChild(close);
         content.appendChild(guideText);
         modal.appendChild(content);
         document.body.appendChild(modal);
+
+        let offsetX, offsetY;
+        content.onmousedown = (e) => {
+            if (e.target !== content && e.target !== close) return;
+            const rect = content.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+            document.onmousemove = (e) => {
+                content.style.left = `${e.clientX - offsetX}px`;
+                content.style.top = `${e.clientY - offsetY}px`;
+                content.style.transform = "none";
+            };
+            document.onmouseup = () => {
+                document.onmousemove = null;
+                document.onmouseup = null;
+            };
+        };
 
         this.updateStatus("Guide opened", this.isSmartModel ? "S-Model" : "T-Model");
         console.log("Guide modal opened");
@@ -1695,87 +1698,12 @@ class PetriNetCanvas {
         console.log("Zoomed out to:", this.zoomLevel);
     }
 
-    allTokensArrived(transition) {
-        return transition.inputArcs.every(arc => {
-            const source = arc.place;
-            const required = this.isSmartModel ? 1 : arc.weight;
-            const arrived = this.animations.filter(anim => 
-                anim.sourcePlace === source && anim.toTransition && 
-                anim.targetX === transition.x && anim.targetY === transition.y && 
-                anim.isFinished()
-            ).length;
-            return arrived >= required;
-        });
-    }
-
     simulateStep() {
-        const enabled = this.transitions.filter(t => {
-            const isEnabled = this.isSmartModel ? t.isEnabledSmart() : t.isEnabled();
-            return isEnabled && !t.active;
-        });
-        if (enabled.length > 0) {
-            const t = enabled[Math.floor(Math.random() * enabled.length)];
-            t.active = true; // Mark as active to prevent re-firing
-
-            // Step 1: Generate animations from input places to transition
-            this.generateTransitionTokens(t);
-
-            // Step 2: Wait for tokens to arrive (visual acknowledgment)
-            setTimeout(() => {
-                // Step 3: Validate and fire to output places
-                if (this.isSmartModel) {
-                    t.fireSmart(this.animations);
-                } else {
-                    t.fire(this.animations);
-                }
-                this.updateStatus(`Fired transition: ${t.name}`, this.isSmartModel ? "S-Model" : "T-Model");
-                console.log("Simulated step, fired transition:", t.name);
-                t.active = false; // Reset active state
-            }, 500); // 500ms delay matches typical Java visual pause
-        }
-    }
-
-    canFireTransition(transition) {
-        return transition.inputArcs.every(arc => arc.place.tokens >= (this.isSmartModel ? 1 : arc.weight));
-    }
-
-    generateTransitionTokens(transition) {
-        transition.inputArcs.forEach(arc => {
-            const place = arc.place;
-            const weight = this.isSmartModel ? 1 : arc.weight;
-            for (let i = 0; i < weight && place.tokens > 0; i++) {
-                const anim = this.isSmartModel ?
-                    new TokenAnimation(place.x, place.y, transition.x, transition.y, null, place, new SmartToken(place.getTokenValue())) :
-                    new TokenAnimation(place.x, place.y, transition.x, transition.y, null, place);
-                anim.toTransition = true;
-                this.animations.push(anim);
-                place.removeToken();
-            }
-        });
+        TransitionManager.simulateStep(this.transitions, this.animations, this.isSmartModel, this);
     }
 
     updateAnimations() {
-        this.animations = this.animations.filter(anim => {
-            anim.update();
-            if (anim.isFinished()) {
-                if (anim.toTransition) {
-                    const transition = this.transitions.find(t => t.x === anim.targetX && t.y === anim.targetY);
-                    if (transition && this.canFireTransition(transition)) {
-                        transition.outputArcs.forEach(outArc => {
-                            const newAnim = this.isSmartModel ?
-                                new TokenAnimation(transition.x, transition.y, outArc.place.x, outArc.place.y, outArc.place, null, anim.smartToken) :
-                                new TokenAnimation(transition.x, transition.y, outArc.place.x, outArc.place.y, outArc.place);
-                            this.animations.push(newAnim);
-                        });
-                    }
-                } else if (anim.targetPlace) {
-                    anim.targetPlace.addToken();
-                    if (this.isSmartModel && anim.smartToken) anim.targetPlace.setTokenValue(anim.smartToken.value);
-                }
-                return false;
-            }
-            return true;
-        });
+        TransitionManager.updateAnimations(this.animations, this.transitions, this.isSmartModel);
     }
 
     generateTokensFromInitializers() {
@@ -2149,40 +2077,14 @@ class PetriNetCanvas {
         if (e.deltaY < 0) this.zoomIn();
         else this.zoomOut();
     }
-
-    newDesign() {
-        if (this.designState.hasUnsavedChanges() && this.designState.hasDesign()) {
-            if (!confirm("You have unsaved changes. Create a new design anyway?")) return;
-        }
-        this.designState.currentFileName = "Untitled.json";
-        this.saveStateToUndo();
-        this.places = [];
-        this.transitions = [];
-        this.arcs = [];
-        this.initializers = [];
-        this.annotations = [];
-        this.animations = [];
-        this.selectedElements = [];
-        this.selected = null;
-        this.addMode = "select";
-        this.handMode = false;
-        this.drawingArc = false;
-        this.designExists = true;
-        this.designState.newDesign(this.designState.currentFileName);
-        this.updateTitle();
-        this.updateButtonStates();
-        this.updateStatus("New design created", this.isSmartModel ? "S-Model" : "T-Model");
-        console.log("New design created with file:", this.designState.currentFileName);
-    }
 }
 
-// Initialize the canvas after DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
     const canvas = new PetriNetCanvas();
     if (!canvas.canvas) {
         console.error("Failed to initialize PetriNetCanvas!");
     } else {
         console.log("PetriNetCanvas initialized successfully");
-        window.canvas = canvas; // Expose globally for dropdowns and toolbar
+        window.canvas = canvas;
     }
 });
