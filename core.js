@@ -163,6 +163,7 @@ class Loader {
         });
 
         canvas.designState.loadDesign(canvas.designState.currentFileName || "Loaded Design");
+        canvas.designExists = true; // Ensure designExists is set
     }
 }
 
@@ -322,14 +323,3 @@ class PetriNet {
         return sb;
     }
 }
-
-// Initialize the canvas after DOM is loaded
-document.addEventListener("DOMContentLoaded", () => {
-    const canvas = new PetriNetCanvas();
-    if (!canvas.canvas) {
-        console.error("Failed to initialize PetriNetCanvas!");
-    } else {
-        console.log("PetriNetCanvas initialized successfully");
-        window.canvas = canvas; // Expose globally for dropdowns
-    }
-});
