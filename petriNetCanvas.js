@@ -323,7 +323,6 @@ class PetriNetCanvas {
         content.style.position = "absolute";
         content.style.left = "50%";
         content.style.top = "50%";
-        content.style.transform = "translate(-50%, -50%)";
         content.style.backgroundColor = "#fff";
         content.style.padding = "20px";
         content.style.borderRadius = "8px";
@@ -484,6 +483,7 @@ class PetriNetCanvas {
         modal.appendChild(content);
         document.body.appendChild(modal);
 
+        // Dragging logic
         let offsetX, offsetY, isDragging = false;
         header.onmousedown = (e) => {
             if (e.target !== header) return;
@@ -491,11 +491,14 @@ class PetriNetCanvas {
             offsetX = e.clientX - rect.left;
             offsetY = e.clientY - rect.top;
             isDragging = true;
+            content.style.transition = "none"; // Smooth dragging
             document.onmousemove = (e) => {
                 if (isDragging) {
-                    content.style.left = `${e.clientX - offsetX}px`;
-                    content.style.top = `${e.clientY - offsetY}px`;
-                    content.style.transform = "none"; // Remove transform to avoid offset
+                    const newLeft = e.clientX - offsetX;
+                    const newTop = e.clientY - offsetY;
+                    content.style.left = `${newLeft}px`;
+                    content.style.top = `${newTop}px`;
+                    content.style.transform = "none"; // Remove transform for accurate positioning
                 }
             };
             document.onmouseup = () => {
@@ -539,7 +542,6 @@ class PetriNetCanvas {
             content.style.position = "absolute";
             content.style.left = "50%";
             content.style.top = "50%";
-            content.style.transform = "translate(-50%, -50%)";
             content.style.backgroundColor = "#fff";
             content.style.padding = "20px";
             content.style.borderRadius = "8px";
@@ -669,10 +671,13 @@ class PetriNetCanvas {
                 offsetX = e.clientX - rect.left;
                 offsetY = e.clientY - rect.top;
                 isDragging = true;
+                content.style.transition = "none";
                 document.onmousemove = (e) => {
                     if (isDragging) {
-                        content.style.left = `${e.clientX - offsetX}px`;
-                        content.style.top = `${e.clientY - offsetY}px`;
+                        const newLeft = e.clientX - offsetX;
+                        const newTop = e.clientY - offsetY;
+                        content.style.left = `${newLeft}px`;
+                        content.style.top = `${newTop}px`;
                         content.style.transform = "none";
                     }
                 };
@@ -713,7 +718,6 @@ class PetriNetCanvas {
             content.style.position = "absolute";
             content.style.left = "50%";
             content.style.top = "50%";
-            content.style.transform = "translate(-50%, -50%)";
             content.style.backgroundColor = "#fff";
             content.style.padding = "20px";
             content.style.borderRadius = "8px";
@@ -1047,10 +1051,13 @@ class PetriNetCanvas {
                 offsetX = e.clientX - rect.left;
                 offsetY = e.clientY - rect.top;
                 isDragging = true;
+                content.style.transition = "none";
                 document.onmousemove = (e) => {
                     if (isDragging) {
-                        content.style.left = `${e.clientX - offsetX}px`;
-                        content.style.top = `${e.clientY - offsetY}px`;
+                        const newLeft = e.clientX - offsetX;
+                        const newTop = e.clientY - offsetY;
+                        content.style.left = `${newLeft}px`;
+                        content.style.top = `${newTop}px`;
                         content.style.transform = "none";
                     }
                 };
@@ -1526,8 +1533,47 @@ class PetriNetCanvas {
     }
 
     showGuide() {
-        const modal = document.getElementById("guideModal");
-        const guideText = document.getElementById("guideText");
+        // Remove existing guide modal if it exists
+        const existingModal = document.getElementById("guideModal");
+        if (existingModal) existingModal.remove();
+
+        const modal = document.createElement("div");
+        modal.className = "modal";
+        modal.id = "guideModal";
+        modal.style.display = "block";
+        modal.style.position = "fixed";
+        modal.style.left = "0";
+        modal.style.top = "0";
+        modal.style.width = "100%";
+        modal.style.height = "100%";
+        modal.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+        modal.style.zIndex = "2000";
+
+        const content = document.createElement("div");
+        content.className = "modal-content";
+        content.style.position = "absolute";
+        content.style.left = "50%";
+        content.style.top = "50%";
+        content.style.transform = "translate(-50%, -50%)";
+        content.style.backgroundColor = "#fff";
+        content.style.padding = "20px";
+        content.style.borderRadius = "8px";
+        content.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
+        content.style.width = "400px";
+        content.style.maxWidth = "90vw";
+        content.style.maxHeight = "80vh";
+        content.style.overflowY = "auto";
+
+        const close = document.createElement("span");
+        close.className = "close";
+        close.innerHTML = "×";
+        close.style.fontSize = "28px";
+        close.style.cursor = "pointer";
+        close.style.float = "right";
+        close.onclick = () => modal.remove();
+
+        const guideText = document.createElement("p");
+        guideText.id = "guideText";
         guideText.innerHTML = `
             <b>Smart Model (S-Model) Transition Tasks Guide:</b><br>
             - '+': Adds values of incoming tokens.<br>
@@ -1543,7 +1589,12 @@ class PetriNetCanvas {
             - Input arc weights: Number of tokens required to enable transition.<br>
             - Output arc weights: Number of tokens produced per firing to output places.<br>
         `;
-        modal.style.display = "block"; // Always show modal
+
+        content.appendChild(close);
+        content.appendChild(guideText);
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+
         this.updateStatus("Guide opened", this.isSmartModel ? "S-Model" : "T-Model");
         console.log("Guide modal opened");
     }
@@ -1664,8 +1715,14 @@ class PetriNetCanvas {
         });
         if (enabled.length > 0) {
             const t = enabled[Math.floor(Math.random() * enabled.length)];
-            this.generateTransitionTokens(t); // Start token animations immediately
+            t.active = true; // Mark as active to prevent re-firing
+
+            // Step 1: Generate animations from input places to transition
+            this.generateTransitionTokens(t);
+
+            // Step 2: Wait for tokens to arrive (visual acknowledgment)
             setTimeout(() => {
+                // Step 3: Validate and fire to output places
                 if (this.isSmartModel) {
                     t.fireSmart(this.animations);
                 } else {
@@ -1673,7 +1730,8 @@ class PetriNetCanvas {
                 }
                 this.updateStatus(`Fired transition: ${t.name}`, this.isSmartModel ? "S-Model" : "T-Model");
                 console.log("Simulated step, fired transition:", t.name);
-            }, 500); // Delay firing for visual effect after tokens arrive
+                t.active = false; // Reset active state
+            }, 500); // 500ms delay matches typical Java visual pause
         }
     }
 
@@ -1684,7 +1742,8 @@ class PetriNetCanvas {
     generateTransitionTokens(transition) {
         transition.inputArcs.forEach(arc => {
             const place = arc.place;
-            if (place.tokens > 0) {
+            const weight = this.isSmartModel ? 1 : arc.weight;
+            for (let i = 0; i < weight && place.tokens > 0; i++) {
                 const anim = this.isSmartModel ?
                     new TokenAnimation(place.x, place.y, transition.x, transition.y, null, place, new SmartToken(place.getTokenValue())) :
                     new TokenAnimation(place.x, place.y, transition.x, transition.y, null, place);
