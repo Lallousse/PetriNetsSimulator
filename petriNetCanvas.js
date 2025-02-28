@@ -148,7 +148,11 @@ class PetriNetCanvas {
 
         document.getElementById("zoomInBtn").addEventListener("click", () => this.zoomIn());
         document.getElementById("zoomOutBtn").addEventListener("click", () => this.zoomOut());
-
+        document.getElementById("guideBtn").addEventListener("click", () => {
+            const modal = document.getElementById("guideModal");
+            modal.style.display = "block"; // Always show on click
+            this.showGuide();
+        });
         window.addEventListener("keydown", (e) => {
             if (e.ctrlKey && e.key === "z") this.undo();
             if (e.ctrlKey && e.shiftKey && e.key === "Z") this.redo();
@@ -514,7 +518,25 @@ class PetriNetCanvas {
             const nets = analyzer.analyze();
             let text = "";
             nets.forEach((net, i) => {
-                text += `Net ${i + 1}:\n${net.toFormalNotation(this.isSmartModel)}\n\n`;
+                text += `Net ${i + 1}:\nPN = {P, T, I, O, M₀}\n`;
+                text += `P = {${Array.from(net.places).map(p => p.name).join(", ")}}\n`;
+                text += `T = {${Array.from(net.transitions).map(t => t.name).join(", ")}}\n\n`;
+                
+                text += net.inputFunction.size > 0 ? "I:\n" : "";
+                net.inputFunction.forEach((weight, key) => {
+                    text += `I(${key.replace(",", ", ")}) = ${this.isSmartModel ? (weight > 0 ? 1 : 0) : weight}\n`;
+                });
+                
+                text += net.outputFunction.size > 0 ? "\nO:\n" : "";
+                net.outputFunction.forEach((weight, key) => {
+                    text += `O(${key.replace(",", ", ")}) = ${this.isSmartModel ? (weight > 0 ? 1 : 0) : weight}\n`;
+                });
+                
+                text += "\nM₀ =\n";
+                Array.from(net.places).forEach(p => {
+                    text += `    |  ${p.tokens} |\n`;
+                });
+                text += "\n";
             });
 
             const modal = document.createElement("div");
@@ -604,7 +626,22 @@ class PetriNetCanvas {
                 const nets = new NetAnalyzer(this).analyze();
                 let newText = "";
                 nets.forEach((net, i) => {
-                    newText += `Net ${i + 1}:\n${net.toFormalNotation(this.isSmartModel)}\n\n`;
+                    newText += `Net ${i + 1}:\nPN = {P, T, I, O, M₀}\n`;
+                    newText += `P = {${Array.from(net.places).map(p => p.name).join(", ")}}\n`;
+                    newText += `T = {${Array.from(net.transitions).map(t => t.name).join(", ")}}\n\n`;
+                    newText += net.inputFunction.size > 0 ? "I:\n" : "";
+                    net.inputFunction.forEach((weight, key) => {
+                        newText += `I(${key.replace(",", ", ")}) = ${this.isSmartModel ? (weight > 0 ? 1 : 0) : weight}\n`;
+                    });
+                    newText += net.outputFunction.size > 0 ? "\nO:\n" : "";
+                    net.outputFunction.forEach((weight, key) => {
+                        newText += `O(${key.replace(",", ", ")}) = ${this.isSmartModel ? (weight > 0 ? 1 : 0) : weight}\n`;
+                    });
+                    newText += "\nM₀ =\n";
+                    Array.from(net.places).forEach(p => {
+                        newText += `    |  ${p.tokens} |\n`;
+                    });
+                    newText += "\n";
                 });
                 textarea.value = newText;
             };
@@ -747,7 +784,6 @@ class PetriNetCanvas {
             tableContainer.style.border = "1px solid #ddd";
             tableContainer.style.padding = "10px";
             tableContainer.style.borderRadius = "4px";
-            tableContainer.style.font = "12px Monospaced";
 
             let fullText = "";
             nets.forEach((net, netIndex) => {
@@ -759,17 +795,98 @@ class PetriNetCanvas {
                     return;
                 }
 
-                const netText = net.toMRPNText(this.isSmartModel);
-                fullText += `Net ${netIndex + 1}:\n${netText}\n\n`;
-
                 const netLabel = document.createElement("label");
                 netLabel.textContent = `Net ${netIndex + 1}:`;
                 netLabel.style.font = "bold 14px Monospaced";
                 tableContainer.appendChild(netLabel);
 
-                const pre = document.createElement("pre");
-                pre.textContent = netText;
-                tableContainer.appendChild(pre);
+                // Input Matrix Table
+                const inputLabel = document.createElement("label");
+                inputLabel.textContent = "Input Matrix:";
+                inputLabel.style.font = "bold 12px Monospaced";
+                tableContainer.appendChild(inputLabel);
+
+                const inputTable = document.createElement("table");
+                inputTable.style.borderCollapse = "collapse";
+                inputTable.style.width = "100%";
+                inputTable.style.marginBottom = "10px";
+
+                const inputHeader = document.createElement("tr");
+                inputHeader.appendChild(document.createElement("th")); // Empty cell for place column
+                transitionList.forEach(t => {
+                    const th = document.createElement("th");
+                    th.textContent = t.name;
+                    th.style.border = "1px solid #ddd";
+                    th.style.padding = "8px";
+                    th.style.backgroundColor = "#f2f2f2";
+                    inputHeader.appendChild(th);
+                });
+                inputTable.appendChild(inputHeader);
+
+                placeList.forEach((p, i) => {
+                    const tr = document.createElement("tr");
+                    const tdPlace = document.createElement("td");
+                    tdPlace.textContent = p.name;
+                    tdPlace.style.border = "1px solid #ddd";
+                    tdPlace.style.padding = "8px";
+                    tr.appendChild(tdPlace);
+                    transitionList.forEach(t => {
+                        const td = document.createElement("td");
+                        const weight = net.inputFunction.get(`${p.name},${t.name}`) || 0;
+                        td.textContent = this.isSmartModel ? (weight > 0 ? 1 : 0) : weight;
+                        td.style.border = "1px solid #ddd";
+                        td.style.padding = "8px";
+                        td.style.textAlign = "center";
+                        tr.appendChild(td);
+                    });
+                    inputTable.appendChild(tr);
+                });
+                tableContainer.appendChild(inputTable);
+
+                // Output Matrix Table
+                const outputLabel = document.createElement("label");
+                outputLabel.textContent = "Output Matrix:";
+                outputLabel.style.font = "bold 12px Monospaced";
+                tableContainer.appendChild(outputLabel);
+
+                const outputTable = document.createElement("table");
+                outputTable.style.borderCollapse = "collapse";
+                outputTable.style.width = "100%";
+                outputTable.style.marginBottom = "10px";
+
+                const outputHeader = document.createElement("tr");
+                outputHeader.appendChild(document.createElement("th")); // Empty cell for place column
+                transitionList.forEach(t => {
+                    const th = document.createElement("th");
+                    th.textContent = t.name;
+                    th.style.border = "1px solid #ddd";
+                    th.style.padding = "8px";
+                    th.style.backgroundColor = "#f2f2f2";
+                    outputHeader.appendChild(th);
+                });
+                outputTable.appendChild(outputHeader);
+
+                placeList.forEach((p, i) => {
+                    const tr = document.createElement("tr");
+                    const tdPlace = document.createElement("td");
+                    tdPlace.textContent = p.name;
+                    tdPlace.style.border = "1px solid #ddd";
+                    tdPlace.style.padding = "8px";
+                    tr.appendChild(tdPlace);
+                    transitionList.forEach(t => {
+                        const td = document.createElement("td");
+                        const weight = net.outputFunction.get(`${p.name},${t.name}`) || 0;
+                        td.textContent = this.isSmartModel ? (weight > 0 ? 1 : 0) : weight;
+                        td.style.border = "1px solid #ddd";
+                        td.style.padding = "8px";
+                        td.style.textAlign = "center";
+                        tr.appendChild(td);
+                    });
+                    outputTable.appendChild(tr);
+                });
+                tableContainer.appendChild(outputTable);
+
+                fullText += net.toMRPNText(this.isSmartModel) + "\n\n";
             });
 
             content.appendChild(tableContainer);
@@ -804,19 +921,107 @@ class PetriNetCanvas {
             regenBtn.className = "modal-btn";
             regenBtn.onclick = () => {
                 const nets = new NetAnalyzer(this).analyze();
-                let newText = "";
                 tableContainer.innerHTML = "";
+                let newText = "";
                 nets.forEach((net, netIndex) => {
-                    const netText = net.toMRPNText(this.isSmartModel);
-                    newText += `Net ${netIndex + 1}:\n${netText}\n\n`;
+                    const placeList = Array.from(net.places);
+                    const transitionList = Array.from(net.transitions);
+                    if (placeList.length === 0 || transitionList.length === 0) {
+                        tableContainer.innerHTML += `<p>Net ${netIndex + 1}: No design elements available.</p>`;
+                        newText += `Net ${netIndex + 1}: No design elements available.\n\n`;
+                        return;
+                    }
+
                     const netLabel = document.createElement("label");
                     netLabel.textContent = `Net ${netIndex + 1}:`;
                     netLabel.style.font = "bold 14px Monospaced";
                     tableContainer.appendChild(netLabel);
-                    const pre = document.createElement("pre");
-                    pre.textContent = netText;
-                    pre.style.fontSize = `${fontSizeSelect.value}px`;
-                    tableContainer.appendChild(pre);
+
+                    const inputLabel = document.createElement("label");
+                    inputLabel.textContent = "Input Matrix:";
+                    inputLabel.style.font = "bold 12px Monospaced";
+                    tableContainer.appendChild(inputLabel);
+
+                    const inputTable = document.createElement("table");
+                    inputTable.style.borderCollapse = "collapse";
+                    inputTable.style.width = "100%";
+                    inputTable.style.marginBottom = "10px";
+
+                    const inputHeader = document.createElement("tr");
+                    inputHeader.appendChild(document.createElement("th"));
+                    transitionList.forEach(t => {
+                        const th = document.createElement("th");
+                        th.textContent = t.name;
+                        th.style.border = "1px solid #ddd";
+                        th.style.padding = "8px";
+                        th.style.backgroundColor = "#f2f2f2";
+                        inputHeader.appendChild(th);
+                    });
+                    inputTable.appendChild(inputHeader);
+
+                    placeList.forEach((p, i) => {
+                        const tr = document.createElement("tr");
+                        const tdPlace = document.createElement("td");
+                        tdPlace.textContent = p.name;
+                        tdPlace.style.border = "1px solid #ddd";
+                        tdPlace.style.padding = "8px";
+                        tr.appendChild(tdPlace);
+                        transitionList.forEach(t => {
+                            const td = document.createElement("td");
+                            const weight = net.inputFunction.get(`${p.name},${t.name}`) || 0;
+                            td.textContent = this.isSmartModel ? (weight > 0 ? 1 : 0) : weight;
+                            td.style.border = "1px solid #ddd";
+                            td.style.padding = "8px";
+                            td.style.textAlign = "center";
+                            tr.appendChild(td);
+                        });
+                        inputTable.appendChild(tr);
+                    });
+                    tableContainer.appendChild(inputTable);
+
+                    const outputLabel = document.createElement("label");
+                    outputLabel.textContent = "Output Matrix:";
+                    outputLabel.style.font = "bold 12px Monospaced";
+                    tableContainer.appendChild(outputLabel);
+
+                    const outputTable = document.createElement("table");
+                    outputTable.style.borderCollapse = "collapse";
+                    outputTable.style.width = "100%";
+                    outputTable.style.marginBottom = "10px";
+
+                    const outputHeader = document.createElement("tr");
+                    outputHeader.appendChild(document.createElement("th"));
+                    transitionList.forEach(t => {
+                        const th = document.createElement("th");
+                        th.textContent = t.name;
+                        th.style.border = "1px solid #ddd";
+                        th.style.padding = "8px";
+                        th.style.backgroundColor = "#f2f2f2";
+                        outputHeader.appendChild(th);
+                    });
+                    outputTable.appendChild(outputHeader);
+
+                    placeList.forEach((p, i) => {
+                        const tr = document.createElement("tr");
+                        const tdPlace = document.createElement("td");
+                        tdPlace.textContent = p.name;
+                        tdPlace.style.border = "1px solid #ddd";
+                        tdPlace.style.padding = "8px";
+                        tr.appendChild(tdPlace);
+                        transitionList.forEach(t => {
+                            const td = document.createElement("td");
+                            const weight = net.outputFunction.get(`${p.name},${t.name}`) || 0;
+                            td.textContent = this.isSmartModel ? (weight > 0 ? 1 : 0) : weight;
+                            td.style.border = "1px solid #ddd";
+                            td.style.padding = "8px";
+                            td.style.textAlign = "center";
+                            tr.appendChild(td);
+                        });
+                        outputTable.appendChild(tr);
+                    });
+                    tableContainer.appendChild(outputTable);
+
+                    newText += net.toMRPNText(this.isSmartModel) + "\n\n";
                 });
                 fullText = newText;
             };
@@ -839,8 +1044,8 @@ class PetriNetCanvas {
                 fontSizeSelect.appendChild(option);
             });
             fontSizeSelect.onchange = () => {
-                tableContainer.querySelectorAll("pre").forEach(pre => {
-                    pre.style.fontSize = `${fontSizeSelect.value}px`;
+                tableContainer.querySelectorAll("table, label").forEach(el => {
+                    el.style.fontSize = `${fontSizeSelect.value}px`;
                 });
             };
             fontPanel.appendChild(fontSizeSelect);
@@ -1109,6 +1314,7 @@ class PetriNetCanvas {
             const annotation = this.getAnnotationAt(x, y);
             if (!(elem === this.editingElement || arc === this.editingElement || annotation === this.editingElement)) {
                 this.finishEditing(true);
+                this.setMode("select"); // Switch back to select mode after editing
             }
         }
     }
@@ -1464,21 +1670,37 @@ class PetriNetCanvas {
         console.log("Zoomed out to:", this.zoomLevel);
     }
 
+    allTokensArrived(transition) {
+        return transition.inputArcs.every(arc => {
+            const source = arc.place;
+            const required = this.isSmartModel ? 1 : arc.weight;
+            const arrived = this.animations.filter(anim => 
+                anim.sourcePlace === source && anim.toTransition && 
+                anim.targetX === transition.x && anim.targetY === transition.y && 
+                anim.isFinished()
+            ).length;
+            return arrived >= required;
+        });
+    }
+
     simulateStep() {
         const enabled = this.transitions.filter(t => {
             const isEnabled = this.isSmartModel ? t.isEnabledSmart() : t.isEnabled();
-            return isEnabled && !t.active && this.canFireTransition(t);
+            return isEnabled && !t.active && this.allTokensArrived(t);
         });
         if (enabled.length > 0) {
             const t = enabled[Math.floor(Math.random() * enabled.length)];
-            if (this.isSmartModel) {
-                t.fireSmart(this.animations);
-            } else {
-                t.fire(this.animations);
-            }
-            this.updateStatus(`Fired transition: ${t.name}`, this.isSmartModel ? "S-Model" : "T-Model");
-            console.log("Simulated step, fired transition:", t.name);
-            this.generateTransitionTokens(t);
+            // Delay firing until all tokens are visually acknowledged
+            setTimeout(() => {
+                if (this.isSmartModel) {
+                    t.fireSmart(this.animations);
+                } else {
+                    t.fire(this.animations);
+                }
+                this.updateStatus(`Fired transition: ${t.name}`, this.isSmartModel ? "S-Model" : "T-Model");
+                console.log("Simulated step, fired transition:", t.name);
+                this.generateTransitionTokens(t);
+            }, 500); // 500ms delay for visual acknowledgment
         }
     }
 

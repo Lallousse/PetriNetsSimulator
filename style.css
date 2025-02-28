@@ -58,7 +58,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 40px; /* Further increased padding */
+    padding: 0 40px;
     border-top: 1px solid #555;
     z-index: 1000;
 }
@@ -70,7 +70,7 @@ body {
 #modelStatus {
     font-size: 12px;
     font-weight: bold;
-    padding-right: 40px; /* Further increased padding */
+    padding-right: 40px;
 }
 
 .tool-btn {
@@ -155,17 +155,15 @@ body {
     padding: 10px;
     transform: translateX(100%);
     opacity: 0;
+    pointer-events: none; /* Prevent interaction when hidden */
     transition: transform 0.3s ease, opacity 0.2s ease;
 }
 
-.dropdown:hover > .dropdown-content {
+.dropdown:hover .dropdown-content,
+.dropdown:focus-within .dropdown-content { /* Show only on hover/focus of dropdown */
     transform: translateX(0);
     opacity: 1;
-}
-
-.dropdown-content:hover {
-    transform: translateX(0);
-    opacity: 1;
+    pointer-events: auto;
 }
 
 .dropdown-content button {
@@ -298,7 +296,7 @@ td, th {
 th {
     background-color: #f2f2f2;
 }
-/* Add to the end of style.css */
+
 .modal-btn {
     padding: 8px 16px;
     background-color: #f0f0f0;
