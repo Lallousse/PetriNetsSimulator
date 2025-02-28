@@ -5,179 +5,89 @@ class NetAnalyzer {
 
     analyze() {
         const nets = [];
-        const visitedPlaces = new Set(); // Track places by name
-        const visitedTransitions = new Set();
+        const elementToNet = new Map();
+        const visited = new Set();
 
-        // Start with all places and initializer outputs
-        const allElements = [...this.canvas.places, ...this.canvas.initializers.map(i => i.outputPlace).filter(p => p)];
-        if (allElements.length === 0) return [this.createEmptyNet()];
-
-        const net = new PetriNet();
-        const queue = [allElements[0]];
-        visitedPlaces.add(allElements[0].name);
-
-        // Traverse the entire net starting from the first place
-        while (queue.length > 0) {
-            const current = queue.shift();
-            if (current instanceof Place) {
-                net.places.add(current);
-                // Find all arcs connected to this place (by name)
-                const outgoingArcs = this.canvas.arcs.filter(arc => 
-                    arc.start.name === current.name && arc.end instanceof Transition
-                );
-                const incomingArcs = this.canvas.arcs.filter(arc => 
-                    arc.end.name === current.name && arc.start instanceof Transition
-                );
-
-                // Process outgoing transitions
-                outgoingArcs.forEach(arc => {
-                    const transition = arc.end;
-                    if (!visitedTransitions.has(transition)) {
-                        visitedTransitions.add(transition);
-                        net.transitions.add(transition);
-                        transition.inputArcs.forEach(input => {
-                            net.inputFunction.set(`${input.place.name},${transition.name}`, input.weight);
-                            if (!visitedPlaces.has(input.place.name)) {
-                                visitedPlaces.add(input.place.name);
-                                const place = this.canvas.places.find(p => p.name === input.place.name);
-                                net.places.add(place);
-                                queue.push(place);
-                            }
-                        });
-                        transition.outputArcs.forEach(output => {
-                            net.outputFunction.set(`${output.place.name},${transition.name}`, output.weight);
-                            if (!visitedPlaces.has(output.place.name)) {
-                                visitedPlaces.add(output.place.name);
-                                const place = this.canvas.places.find(p => p.name === output.place.name);
-                                net.places.add(place);
-                                queue.push(place);
-                            }
-                        });
-                    }
-                });
-
-                // Process incoming transitions
-                incomingArcs.forEach(arc => {
-                    const transition = arc.start;
-                    if (!visitedTransitions.has(transition)) {
-                        visitedTransitions.add(transition);
-                        net.transitions.add(transition);
-                        transition.inputArcs.forEach(input => {
-                            net.inputFunction.set(`${input.place.name},${transition.name}`, input.weight);
-                            if (!visitedPlaces.has(input.place.name)) {
-                                visitedPlaces.add(input.place.name);
-                                const place = this.canvas.places.find(p => p.name === input.place.name);
-                                net.places.add(place);
-                                queue.push(place);
-                            }
-                        });
-                        transition.outputArcs.forEach(output => {
-                            net.outputFunction.set(`${output.place.name},${transition.name}`, output.weight);
-                            if (!visitedPlaces.has(output.place.name)) {
-                                visitedPlaces.add(output.place.name);
-                                const place = this.canvas.places.find(p => p.name === output.place.name);
-                                net.places.add(place);
-                                queue.push(place);
-                            }
-                        });
-                    }
-                });
-            }
-        }
-
-        // Add any remaining unvisited elements connected via arcs
-        allElements.forEach(el => {
-            if (!visitedPlaces.has(el.name)) {
-                const connectedArcs = this.canvas.arcs.filter(arc => 
-                    (arc.start.name === el.name && net.transitions.has(arc.end)) || 
-                    (arc.end.name === el.name && net.transitions.has(arc.start))
-                );
-                if (connectedArcs.length > 0) {
-                    visitedPlaces.add(el.name);
-                    net.places.add(el);
-                    queue.push(el);
-                    while (queue.length > 0) {
-                        const current = queue.shift();
-                        const outgoingArcs = this.canvas.arcs.filter(arc => 
-                            arc.start.name === current.name && arc.end instanceof Transition
-                        );
-                        const incomingArcs = this.canvas.arcs.filter(arc => 
-                            arc.end.name === current.name && arc.start instanceof Transition
-                        );
-                        outgoingArcs.forEach(arc => {
-                            const transition = arc.end;
-                            if (!visitedTransitions.has(transition)) {
-                                visitedTransitions.add(transition);
-                                net.transitions.add(transition);
-                                transition.inputArcs.forEach(input => {
-                                    net.inputFunction.set(`${input.place.name},${transition.name}`, input.weight);
-                                    if (!visitedPlaces.has(input.place.name)) {
-                                        visitedPlaces.add(input.place.name);
-                                        const place = this.canvas.places.find(p => p.name === input.place.name);
-                                        net.places.add(place);
-                                        queue.push(place);
-                                    }
-                                });
-                                transition.outputArcs.forEach(output => {
-                                    net.outputFunction.set(`${output.place.name},${transition.name}`, output.weight);
-                                    if (!visitedPlaces.has(output.place.name)) {
-                                        visitedPlaces.add(output.place.name);
-                                        const place = this.canvas.places.find(p => p.name === output.place.name);
-                                        net.places.add(place);
-                                        queue.push(place);
-                                    }
-                                });
-                            }
-                        });
-                        incomingArcs.forEach(arc => {
-                            const transition = arc.start;
-                            if (!visitedTransitions.has(transition)) {
-                                visitedTransitions.add(transition);
-                                net.transitions.add(transition);
-                                transition.inputArcs.forEach(input => {
-                                    net.inputFunction.set(`${input.place.name},${transition.name}`, input.weight);
-                                    if (!visitedPlaces.has(input.place.name)) {
-                                        visitedPlaces.add(input.place.name);
-                                        const place = this.canvas.places.find(p => p.name === input.place.name);
-                                        net.places.add(place);
-                                        queue.push(place);
-                                    }
-                                });
-                                transition.outputArcs.forEach(output => {
-                                    net.outputFunction.set(`${output.place.name},${transition.name}`, output.weight);
-                                    if (!visitedPlaces.has(output.place.name)) {
-                                        visitedPlaces.add(output.place.name);
-                                        const place = this.canvas.places.find(p => p.name === output.place.name);
-                                        net.places.add(place);
-                                        queue.push(place);
-                                    }
-                                });
-                            }
-                        });
-                    }
-                }
-            }
-        });
-
-        if (net.places.size > 0 || net.transitions.size > 0) {
-            nets.push(net);
-        }
-
-        return nets.length > 0 ? nets : [this.createEmptyNet()];
-    }
-
-    createEmptyNet() {
-        const net = new PetriNet();
-        this.canvas.places.forEach(p => net.places.add(p));
-        this.canvas.transitions.forEach(t => net.transitions.add(t));
+        // Step 1: Build nets based on arc connectivity, merging nets with shared elements
         this.canvas.arcs.forEach(arc => {
-            if (arc.isInput) {
-                net.inputFunction.set(`${arc.start.name},${arc.end.name}`, arc.weight);
+            let startNet = elementToNet.get(arc.start);
+            let endNet = elementToNet.get(arc.end);
+
+            // If both elements are in nets, merge them if different
+            if (startNet && endNet && startNet !== endNet) {
+                this.mergeNets(startNet, endNet, nets, elementToNet);
+                elementToNet.set(arc.end, startNet); // Update end to merged net
             } else {
+                // Use existing net or create new one
+                const net = startNet || endNet || new PetriNet();
+                if (!nets.includes(net)) {
+                    nets.push(net);
+                }
+                elementToNet.set(arc.start, net);
+                elementToNet.set(arc.end, net);
+            }
+
+            // Add elements and arcs to the net
+            const net = elementToNet.get(arc.start);
+            if (arc.start instanceof Place && arc.end instanceof Transition) {
+                net.places.add(arc.start);
+                net.transitions.add(arc.end);
+                net.inputFunction.set(`${arc.start.name},${arc.end.name}`, arc.weight);
+            } else if (arc.start instanceof Transition && arc.end instanceof Place) {
+                net.transitions.add(arc.start);
+                net.places.add(arc.end);
                 net.outputFunction.set(`${arc.end.name},${arc.start.name}`, arc.weight);
             }
+            visited.add(arc.start);
+            visited.add(arc.end);
         });
-        return net;
+
+        // Step 2: Handle unconnected elements as part of the first net or a new single net
+        let mainNet = nets.length === 0 ? new PetriNet() : nets[0];
+        let hasUnconnected = false;
+
+        this.canvas.places.forEach(p => {
+            if (!visited.has(p)) {
+                mainNet.places.add(p);
+                elementToNet.set(p, mainNet);
+                hasUnconnected = true;
+            }
+        });
+        this.canvas.transitions.forEach(t => {
+            if (!visited.has(t)) {
+                mainNet.transitions.add(t);
+                elementToNet.set(t, mainNet);
+                hasUnconnected = true;
+            }
+        });
+
+        if (hasUnconnected && !nets.includes(mainNet)) {
+            nets.push(mainNet);
+        }
+
+        // Step 3: Ensure at least one net if canvas has elements
+        if (nets.length === 0 && (this.canvas.places.length > 0 || this.canvas.transitions.length > 0)) {
+            nets.push(mainNet);
+        }
+
+        return nets;
+    }
+
+    mergeNets(net1, net2, nets, elementToNet) {
+        // Merge net2 into net1
+        net2.places.forEach(p => net1.places.add(p));
+        net2.transitions.forEach(t => net1.transitions.add(t));
+        net2.inputFunction.forEach((weight, key) => net1.inputFunction.set(key, weight));
+        net2.outputFunction.forEach((weight, key) => net1.outputFunction.set(key, weight));
+        nets.splice(nets.indexOf(net2), 1);
+
+        // Update elementToNet mappings
+        this.canvas.places.forEach(p => {
+            if (elementToNet.get(p) === net2) elementToNet.set(p, net1);
+        });
+        this.canvas.transitions.forEach(t => {
+            if (elementToNet.get(t) === net2) elementToNet.set(t, net1);
+        });
     }
 }
 

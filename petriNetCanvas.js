@@ -26,7 +26,7 @@ class PetriNetCanvas {
         this.selectionStart = null;
         this.handMode = false;
         this.draggingCanvas = false;
-        this.draggingElements = false; // New flag for element dragging
+        this.draggingElements = false;
         this.dragStartX = 0;
         this.dragStartY = 0;
         this.autoRun = false;
@@ -1094,7 +1094,7 @@ class PetriNetCanvas {
                     this.selectedElements.push(elem);
                 }
                 this.selected = elem;
-                this.draggingElements = true; // Start dragging elements
+                this.draggingElements = true;
                 this.dragStartX = e.clientX;
                 this.dragStartY = e.clientY;
                 console.log("Selected element:", elem.name);
@@ -1206,7 +1206,7 @@ class PetriNetCanvas {
                 width: Math.abs(x - this.selectionStart.x),
                 height: Math.abs(y - this.selectionStart.y)
             };
-            if (this.selectionArea.width > 5 && this.selectionArea.height > 5) { // Minimum size to consider area selection
+            if (this.selectionArea.width > 5 && this.selectionArea.height > 5) {
                 this.selectWithinArea();
             }
             this.selectionStart = null;
@@ -1619,7 +1619,7 @@ class PetriNetCanvas {
         console.log("Guide modal opened");
     }
 
-    insertPNFNAsNote() { // Corrected function name spacing
+    insertPNFNAsNote() {
         const pnfnText = document.getElementById("pnfnText").value;
         if (!pnfnText) return;
         this.saveStateToUndo();
@@ -1716,11 +1716,60 @@ class PetriNetCanvas {
     }
 
     simulateStep() {
-        TransitionManager.simulateStep(this.transitions, this.animations, this.isSmartModel, this);
+        const enabled = this.transitions.filter(t => {
+            const isEnabled = this.isSmartModel ? t.isEnabledSmart() : t.isEnabled();
+            return isEnabled && !t.active;
+        });
+        if (enabled.length === 0) return;
+
+        const transition = enabled[Math.floor(Math.random() * enabled.length)];
+        transition.active = true;
+
+        // Generate animations from input places to transition
+        transition.inputArcs.forEach(arc => {
+            const place = arc.place;
+            const weight = this.isSmartModel ? 1 : arc.weight;
+            for (let i = 0; i < weight && place.tokens > 0; i++) {
+                const anim = this.isSmartModel ?
+                    new TokenAnimation(place.x, place.y, transition.x, transition.y, null, place, new SmartToken(place.getTokenValue())) :
+                    new TokenAnimation(place.x, place.y, transition.x, transition.y, null, place);
+                anim.toTransition = true;
+                this.animations.push(anim);
+                place.removeToken();
+            }
+        });
+        this.updateStatus(`Acknowledging transition: ${transition.name}`, this.isSmartModel ? "S-Model" : "T-Model");
+        console.log(`Acknowledging transition: ${transition.name}`);
     }
 
     updateAnimations() {
-        TransitionManager.updateAnimations(this.animations);
+        for (let i = this.animations.length - 1; i >= 0; i--) {
+            const anim = this.animations[i];
+            anim.update();
+            if (anim.isFinished()) {
+                if (anim.toTransition) {
+                    const transition = this.transitions.find(t => 
+                        Math.abs(t.x - anim.endX) < 1 && Math.abs(t.y - anim.endY) < 1 && t.active
+                    );
+                    if (transition) {
+                        if (this.isSmartModel ? transition.isEnabledSmart() : transition.isEnabled()) {
+                            if (this.isSmartModel) {
+                                transition.fireSmart(this.animations);
+                            } else {
+                                transition.fire(this.animations);
+                            }
+                            this.updateStatus(`Fired transition: ${transition.name}`, this.isSmartModel ? "S-Model" : "T-Model");
+                            console.log(`Fired transition: ${transition.name}`);
+                        }
+                        transition.active = false;
+                    }
+                } else if (anim.targetPlace) {
+                    anim.targetPlace.addToken();
+                    if (this.isSmartModel && anim.smartToken) anim.targetPlace.setTokenValue(anim.smartToken.value);
+                }
+                this.animations.splice(i, 1);
+            }
+        }
     }
 
     generateTokensFromInitializers() {
@@ -2047,8 +2096,9 @@ class PetriNetCanvas {
             this.updateButtonStates();
             this.updateStatus(`Annotation font changed to ${font} ${size}px`, this.isSmartModel ? "S-Model" : "T-Model");
             console.log("Annotation font changed to:", font, size);
+        }
     }
-    }
+
     updateButtonStates() {
         const hasDesign = this.designExists && 
                          (this.places.length > 0 || this.transitions.length > 0 || 
