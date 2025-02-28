@@ -5,42 +5,79 @@ class NetAnalyzer {
 
     analyze() {
         const nets = [];
-        const visitedPlaces = new Set();
+        const visitedPlaces = new Set(); // Track places by name
         const visitedTransitions = new Set();
 
-        // Start with all places and initializers to ensure connectivity
+        // Start with all places and initializer outputs
         const allElements = [...this.canvas.places, ...this.canvas.initializers.map(i => i.outputPlace).filter(p => p)];
         if (allElements.length === 0) return [this.createEmptyNet()];
 
-        // Build a single net if connected, otherwise separate nets
-        let currentNet = new PetriNet();
+        const net = new PetriNet();
         const queue = [allElements[0]];
-        visitedPlaces.add(allElements[0]);
+        visitedPlaces.add(allElements[0].name);
 
+        // Traverse the entire net starting from the first place
         while (queue.length > 0) {
             const current = queue.shift();
             if (current instanceof Place) {
-                currentNet.places.add(current);
-                const outgoingArcs = this.canvas.arcs.filter(arc => arc.start === current && arc.end instanceof Transition);
+                net.places.add(current);
+                // Find all arcs connected to this place (by name)
+                const outgoingArcs = this.canvas.arcs.filter(arc => 
+                    arc.start.name === current.name && arc.end instanceof Transition
+                );
+                const incomingArcs = this.canvas.arcs.filter(arc => 
+                    arc.end.name === current.name && arc.start instanceof Transition
+                );
+
+                // Process outgoing transitions
                 outgoingArcs.forEach(arc => {
                     const transition = arc.end;
                     if (!visitedTransitions.has(transition)) {
                         visitedTransitions.add(transition);
-                        currentNet.transitions.add(transition);
+                        net.transitions.add(transition);
                         transition.inputArcs.forEach(input => {
-                            currentNet.inputFunction.set(`${input.place.name},${transition.name}`, input.weight);
-                            if (!visitedPlaces.has(input.place)) {
-                                visitedPlaces.add(input.place);
-                                currentNet.places.add(input.place);
-                                queue.push(input.place);
+                            net.inputFunction.set(`${input.place.name},${transition.name}`, input.weight);
+                            if (!visitedPlaces.has(input.place.name)) {
+                                visitedPlaces.add(input.place.name);
+                                const place = this.canvas.places.find(p => p.name === input.place.name);
+                                net.places.add(place);
+                                queue.push(place);
                             }
                         });
                         transition.outputArcs.forEach(output => {
-                            currentNet.outputFunction.set(`${output.place.name},${transition.name}`, output.weight);
-                            if (!visitedPlaces.has(output.place)) {
-                                visitedPlaces.add(output.place);
-                                currentNet.places.add(output.place);
-                                queue.push(output.place);
+                            net.outputFunction.set(`${output.place.name},${transition.name}`, output.weight);
+                            if (!visitedPlaces.has(output.place.name)) {
+                                visitedPlaces.add(output.place.name);
+                                const place = this.canvas.places.find(p => p.name === output.place.name);
+                                net.places.add(place);
+                                queue.push(place);
+                            }
+                        });
+                    }
+                });
+
+                // Process incoming transitions
+                incomingArcs.forEach(arc => {
+                    const transition = arc.start;
+                    if (!visitedTransitions.has(transition)) {
+                        visitedTransitions.add(transition);
+                        net.transitions.add(transition);
+                        transition.inputArcs.forEach(input => {
+                            net.inputFunction.set(`${input.place.name},${transition.name}`, input.weight);
+                            if (!visitedPlaces.has(input.place.name)) {
+                                visitedPlaces.add(input.place.name);
+                                const place = this.canvas.places.find(p => p.name === input.place.name);
+                                net.places.add(place);
+                                queue.push(place);
+                            }
+                        });
+                        transition.outputArcs.forEach(output => {
+                            net.outputFunction.set(`${output.place.name},${transition.name}`, output.weight);
+                            if (!visitedPlaces.has(output.place.name)) {
+                                visitedPlaces.add(output.place.name);
+                                const place = this.canvas.places.find(p => p.name === output.place.name);
+                                net.places.add(place);
+                                queue.push(place);
                             }
                         });
                     }
@@ -48,39 +85,71 @@ class NetAnalyzer {
             }
         }
 
-        // Add unvisited elements to the same net if connected via arcs
+        // Add any remaining unvisited elements connected via arcs
         allElements.forEach(el => {
-            if (!visitedPlaces.has(el)) {
-                const connected = this.canvas.arcs.some(arc => 
-                    (arc.start === el && currentNet.transitions.has(arc.end)) || 
-                    (arc.end === el && currentNet.transitions.has(arc.start))
+            if (!visitedPlaces.has(el.name)) {
+                const connectedArcs = this.canvas.arcs.filter(arc => 
+                    (arc.start.name === el.name && net.transitions.has(arc.end)) || 
+                    (arc.end.name === el.name && net.transitions.has(arc.start))
                 );
-                if (connected) {
+                if (connectedArcs.length > 0) {
+                    visitedPlaces.add(el.name);
+                    net.places.add(el);
                     queue.push(el);
-                    visitedPlaces.add(el);
                     while (queue.length > 0) {
                         const current = queue.shift();
-                        currentNet.places.add(current);
-                        const outgoingArcs = this.canvas.arcs.filter(arc => arc.start === current && arc.end instanceof Transition);
+                        const outgoingArcs = this.canvas.arcs.filter(arc => 
+                            arc.start.name === current.name && arc.end instanceof Transition
+                        );
+                        const incomingArcs = this.canvas.arcs.filter(arc => 
+                            arc.end.name === current.name && arc.start instanceof Transition
+                        );
                         outgoingArcs.forEach(arc => {
                             const transition = arc.end;
                             if (!visitedTransitions.has(transition)) {
                                 visitedTransitions.add(transition);
-                                currentNet.transitions.add(transition);
+                                net.transitions.add(transition);
                                 transition.inputArcs.forEach(input => {
-                                    currentNet.inputFunction.set(`${input.place.name},${transition.name}`, input.weight);
-                                    if (!visitedPlaces.has(input.place)) {
-                                        visitedPlaces.add(input.place);
-                                        currentNet.places.add(input.place);
-                                        queue.push(input.place);
+                                    net.inputFunction.set(`${input.place.name},${transition.name}`, input.weight);
+                                    if (!visitedPlaces.has(input.place.name)) {
+                                        visitedPlaces.add(input.place.name);
+                                        const place = this.canvas.places.find(p => p.name === input.place.name);
+                                        net.places.add(place);
+                                        queue.push(place);
                                     }
                                 });
                                 transition.outputArcs.forEach(output => {
-                                    currentNet.outputFunction.set(`${output.place.name},${transition.name}`, output.weight);
-                                    if (!visitedPlaces.has(output.place)) {
-                                        visitedPlaces.add(output.place);
-                                        currentNet.places.add(output.place);
-                                        queue.push(output.place);
+                                    net.outputFunction.set(`${output.place.name},${transition.name}`, output.weight);
+                                    if (!visitedPlaces.has(output.place.name)) {
+                                        visitedPlaces.add(output.place.name);
+                                        const place = this.canvas.places.find(p => p.name === output.place.name);
+                                        net.places.add(place);
+                                        queue.push(place);
+                                    }
+                                });
+                            }
+                        });
+                        incomingArcs.forEach(arc => {
+                            const transition = arc.start;
+                            if (!visitedTransitions.has(transition)) {
+                                visitedTransitions.add(transition);
+                                net.transitions.add(transition);
+                                transition.inputArcs.forEach(input => {
+                                    net.inputFunction.set(`${input.place.name},${transition.name}`, input.weight);
+                                    if (!visitedPlaces.has(input.place.name)) {
+                                        visitedPlaces.add(input.place.name);
+                                        const place = this.canvas.places.find(p => p.name === input.place.name);
+                                        net.places.add(place);
+                                        queue.push(place);
+                                    }
+                                });
+                                transition.outputArcs.forEach(output => {
+                                    net.outputFunction.set(`${output.place.name},${transition.name}`, output.weight);
+                                    if (!visitedPlaces.has(output.place.name)) {
+                                        visitedPlaces.add(output.place.name);
+                                        const place = this.canvas.places.find(p => p.name === output.place.name);
+                                        net.places.add(place);
+                                        queue.push(place);
                                     }
                                 });
                             }
@@ -90,58 +159,11 @@ class NetAnalyzer {
             }
         });
 
-        if (currentNet.places.size > 0 || currentNet.transitions.size > 0) {
-            nets.push(currentNet);
+        if (net.places.size > 0 || net.transitions.size > 0) {
+            nets.push(net);
         }
-
-        // Check for any remaining unconnected elements
-        allElements.forEach(el => {
-            if (!visitedPlaces.has(el)) {
-                const newNet = this.buildNet(el, visitedPlaces, visitedTransitions);
-                if (newNet.places.size > 0 || newNet.transitions.size > 0) {
-                    nets.push(newNet);
-                }
-            }
-        });
 
         return nets.length > 0 ? nets : [this.createEmptyNet()];
-    }
-
-    buildNet(startPlace, visitedPlaces, visitedTransitions) {
-        const net = new PetriNet();
-        const queue = [startPlace];
-        visitedPlaces.add(startPlace);
-        net.places.add(startPlace);
-
-        while (queue.length > 0) {
-            const currentPlace = queue.shift();
-            const outgoingArcs = this.canvas.arcs.filter(arc => arc.start === currentPlace && arc.end instanceof Transition);
-            outgoingArcs.forEach(arc => {
-                const transition = arc.end;
-                if (!visitedTransitions.has(transition)) {
-                    visitedTransitions.add(transition);
-                    net.transitions.add(transition);
-                    transition.inputArcs.forEach(input => {
-                        net.inputFunction.set(`${input.place.name},${transition.name}`, input.weight);
-                        if (!visitedPlaces.has(input.place)) {
-                            visitedPlaces.add(input.place);
-                            net.places.add(input.place);
-                            queue.push(input.place);
-                        }
-                    });
-                    transition.outputArcs.forEach(output => {
-                        net.outputFunction.set(`${output.place.name},${transition.name}`, output.weight);
-                        if (!visitedPlaces.has(output.place)) {
-                            visitedPlaces.add(output.place);
-                            net.places.add(output.place);
-                            queue.push(output.place);
-                        }
-                    });
-                }
-            });
-        }
-
-        return net;
     }
 
     createEmptyNet() {

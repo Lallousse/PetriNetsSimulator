@@ -1,5 +1,5 @@
 class TransitionManager {
-    static async simulateStep(transitions, animations, isSmartModel, canvas) {
+    static simulateStep(transitions, animations, isSmartModel, canvas) {
         const enabled = transitions.filter(t => {
             const isEnabled = isSmartModel ? t.isEnabledSmart() : t.isEnabled();
             return isEnabled && !t.active;
@@ -9,33 +9,28 @@ class TransitionManager {
         const transition = enabled[Math.floor(Math.random() * enabled.length)];
         transition.active = true;
 
-        try {
-            // Step 1: Acknowledge - Move tokens to transition
-            this.generateTransitionTokens(transition, animations, isSmartModel);
-            canvas.updateStatus(`Acknowledging transition: ${transition.name}`, isSmartModel ? "S-Model" : "T-Model");
-            await this.waitForAnimations(animations, 500); // Wait for tokens to reach transition
+        // Step 1: Acknowledge - Generate animations from input places to transition
+        this.generateTransitionTokens(transition, animations, isSmartModel);
+        canvas.updateStatus(`Acknowledging transition: ${transition.name}`, isSmartModel ? "S-Model" : "T-Model");
+        console.log(`Acknowledging transition: ${transition.name}`);
 
-            // Step 2: Validate - Check if still enabled
+        // Step 2: Validate and Fire - Wait for tokens to arrive, then fire
+        setTimeout(() => {
             if (!(isSmartModel ? transition.isEnabledSmart() : transition.isEnabled())) {
                 console.log(`Transition ${transition.name} no longer enabled`);
                 transition.active = false;
                 return;
             }
 
-            // Step 3: Fire - Move tokens to output places
             if (isSmartModel) {
                 transition.fireSmart(animations);
             } else {
                 transition.fire(animations);
             }
             canvas.updateStatus(`Fired transition: ${transition.name}`, isSmartModel ? "S-Model" : "T-Model");
-            console.log("Fired transition:", transition.name);
-        } catch (error) {
-            console.error("Error in transition simulation:", error);
-            canvas.updateStatus(`Error firing ${transition.name}: ${error.message}`, isSmartModel ? "S-Model" : "T-Model");
-        } finally {
+            console.log(`Fired transition: ${transition.name}`);
             transition.active = false;
-        }
+        }, 500); // 500ms delay to allow tokens to visually reach the transition
     }
 
     static generateTransitionTokens(transition, animations, isSmartModel) {
@@ -65,22 +60,5 @@ class TransitionManager {
                 animations.splice(i, 1);
             }
         }
-    }
-
-    static waitForAnimations(animations, delay) {
-        return new Promise(resolve => {
-            let finished = false;
-            const checkFinished = setInterval(() => {
-                const toTransition = animations.filter(a => a.toTransition);
-                if (toTransition.every(a => a.isFinished())) {
-                    clearInterval(checkFinished);
-                    finished = true;
-                }
-            }, 10);
-            setTimeout(() => {
-                if (!finished) clearInterval(checkFinished);
-                resolve();
-            }, delay);
-        });
     }
 }
