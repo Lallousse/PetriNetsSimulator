@@ -47,6 +47,8 @@ class Place {
         ctx.fillStyle = "black";
         const radius = iconSize / 2 - 4;
         tokenSize = 6;
+
+        // Draw tokens based solely on this.tokens, not animations
         if (this.tokens === 1) {
             ctx.beginPath();
             ctx.arc(this.x, this.y, tokenSize / 2, 0, Math.PI * 2);

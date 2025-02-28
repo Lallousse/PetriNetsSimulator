@@ -366,9 +366,9 @@ class PetriNetCanvas {
 
         const pinBtn = document.createElement("button");
         pinBtn.textContent = "Pin";
-        pinBtn.className = "modal-btn save-btn"; // Match save button style
-        pinBtn.style.padding = "8px 16px"; // Match save button padding
-        pinBtn.style.marginLeft = "10px"; // Add spacing from other buttons
+        pinBtn.className = "modal-btn save-btn";
+        pinBtn.style.padding = "8px 16px";
+        pinBtn.style.marginLeft = "10px";
         pinBtn.onclick = () => {
             modal.style.backgroundColor = "transparent";
             modal.style.pointerEvents = "none";
@@ -481,7 +481,7 @@ class PetriNetCanvas {
         content.appendChild(header);
         content.appendChild(form);
         content.appendChild(saveBtn);
-        content.appendChild(pinBtn); // Add pinBtn after saveBtn for layout
+        content.appendChild(pinBtn);
         modal.appendChild(content);
         document.body.appendChild(modal);
 
@@ -589,7 +589,7 @@ class PetriNetCanvas {
             controlPanel.style.display = "flex";
             controlPanel.style.justifyContent = "space-between";
             controlPanel.style.marginTop = "10px";
-            controlPanel.style.gap = "10px"; // Add spacing between button groups
+            controlPanel.style.gap = "10px";
 
             const buttonPanel = document.createElement("div");
             buttonPanel.style.display = "flex";
@@ -641,8 +641,8 @@ class PetriNetCanvas {
 
             const pinBtn = document.createElement("button");
             pinBtn.textContent = "Pin";
-            pinBtn.className = "modal-btn save-btn"; // Match save button style
-            pinBtn.style.padding = "8px 16px"; // Match save button padding
+            pinBtn.className = "modal-btn save-btn";
+            pinBtn.style.padding = "8px 16px";
             pinBtn.onclick = () => {
                 modal.style.backgroundColor = "transparent";
                 modal.style.pointerEvents = "none";
@@ -1018,8 +1018,8 @@ class PetriNetCanvas {
 
             const pinBtn = document.createElement("button");
             pinBtn.textContent = "Pin";
-            pinBtn.className = "modal-btn save-btn"; // Match save button style
-            pinBtn.style.padding = "8px 16px"; // Match save button padding
+            pinBtn.className = "modal-btn save-btn";
+            pinBtn.style.padding = "8px 16px";
             pinBtn.onclick = () => {
                 modal.style.backgroundColor = "transparent";
                 modal.style.pointerEvents = "none";
@@ -1071,8 +1071,8 @@ class PetriNetCanvas {
 
         if (!this.designExists && this.addMode !== "new") return;
 
+        const elem = this.getElementAt(x, y); // Prioritize elements over arcs
         const arc = this.getArcAt(x, y);
-        const elem = this.getElementAt(x, y);
         const annotation = this.getAnnotationAt(x, y);
 
         if (this.handMode) {
@@ -1087,23 +1087,23 @@ class PetriNetCanvas {
             this.drawingArc = true;
             console.log("Started drawing arc");
         } else if (this.addMode === "select") {
-            if (arc) {
-                if (!e.ctrlKey) this.selectedElements = [];
-                this.selectedElements.push(arc);
-                this.selected = arc;
-                console.log("Selected arc");
-            } else if (annotation) {
-                if (!e.ctrlKey) this.selectedElements = [];
-                this.selectedElements.push(annotation);
-                this.selected = annotation;
-                console.log("Selected annotation");
-            } else if (elem) {
+            if (elem) {
                 if (!this.selectedElements.includes(elem)) {
                     if (!e.ctrlKey) this.selectedElements = [];
                     this.selectedElements.push(elem);
                 }
                 this.selected = elem;
                 console.log("Selected element:", elem.name);
+            } else if (annotation) {
+                if (!e.ctrlKey) this.selectedElements = [];
+                this.selectedElements.push(annotation);
+                this.selected = annotation;
+                console.log("Selected annotation");
+            } else if (arc) {
+                if (!e.ctrlKey) this.selectedElements = [];
+                this.selectedElements.push(arc);
+                this.selected = arc;
+                console.log("Selected arc");
             } else {
                 this.selected = null;
                 this.selectionStart = new Point(x, y);
@@ -1234,9 +1234,8 @@ class PetriNetCanvas {
             };
         } else if (this.addMode === "select" && this.selectedElements.length > 0 && e.buttons === 1) {
             this.saveStateToUndo();
-            const ref = this.selectedElements[0];
-            const dx = x - ref.x;
-            const dy = y - ref.y;
+            const dx = (x - this.dragStartX) / this.zoomLevel;
+            const dy = (y - this.dragStartY) / this.zoomLevel;
             this.selectedElements.forEach(elem => {
                 const snappedX = this.snappingEnabled ? Math.round((elem.x + dx) / 25) * 25 : elem.x + dx;
                 const snappedY = this.snappingEnabled ? Math.round((elem.y + dy) / 25) * 25 : elem.y + dy;
@@ -1248,6 +1247,8 @@ class PetriNetCanvas {
                     elem.y = snappedY;
                 }
             });
+            this.dragStartX = e.clientX;
+            this.dragStartY = e.clientY;
             this.designState.setUnsavedChanges();
         }
     }
@@ -1544,7 +1545,7 @@ class PetriNetCanvas {
         content.style.padding = "20px";
         content.style.borderRadius = "8px";
         content.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
-        content.style.width = "500px"; // Increased width for better readability
+        content.style.width = "500px";
         content.style.maxWidth = "90vw";
         content.style.maxHeight = "80vh";
         content.style.overflowY = "auto";
@@ -1574,7 +1575,7 @@ class PetriNetCanvas {
             - Input arc weights: Number of tokens required to enable transition.<br>
             - Output arc weights: Number of tokens produced per firing to output places.<br>
         `;
-        guideText.style.fontSize = "14px"; // Consistent with other modals
+        guideText.style.fontSize = "14px";
 
         content.appendChild(close);
         content.appendChild(guideText);
@@ -1821,6 +1822,8 @@ class PetriNetCanvas {
         });
         if (this.selectedElements.length === 1) this.selected = this.selectedElements[0];
         else this.selected = null;
+        this.dragStartX = x; // Set drag start for multi-element dragging
+        this.dragStartY = y;
         console.log("Selected elements:", this.selectedElements.length);
     }
 

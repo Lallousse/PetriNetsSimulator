@@ -21,7 +21,7 @@ class TransitionManager {
                 canvas.updateStatus(`Fired transition: ${t.name}`, isSmartModel ? "S-Model" : "T-Model");
                 console.log("Simulated step, fired transition:", t.name);
                 t.active = false;
-            }, 500); // 500ms delay for visual acknowledgment, matching Java behavior
+            }, 500); // 500ms delay for visual acknowledgment
         }
     }
 
@@ -41,26 +41,26 @@ class TransitionManager {
     }
 
     static updateAnimations(animations, transitions, isSmartModel) {
-        animations = animations.filter(anim => {
+        for (let i = animations.length - 1; i >= 0; i--) {
+            const anim = animations[i];
             anim.update();
             if (anim.isFinished()) {
                 if (anim.toTransition) {
                     const transition = transitions.find(t => t.x === anim.targetX && t.y === anim.targetY);
-                    if (transition && (isSmartModel ? transition.isEnabledSmart() : transition.isEnabled())) {
-                        transition.outputArcs.forEach(outArc => {
-                            const newAnim = isSmartModel ?
-                                new TokenAnimation(transition.x, transition.y, outArc.place.x, outArc.place.y, outArc.place, null, anim.smartToken) :
-                                new TokenAnimation(transition.x, transition.y, outArc.place.x, outArc.place.y, outArc.place);
-                            animations.push(newAnim);
-                        });
+                    if (transition && !transition.active) {
+                        if (isSmartModel) {
+                            transition.fireSmart(animations);
+                        } else {
+                            transition.fire(animations);
+                        }
+                        transition.active = false; // Ensure reset after firing
                     }
                 } else if (anim.targetPlace) {
                     anim.targetPlace.addToken();
                     if (isSmartModel && anim.smartToken) anim.targetPlace.setTokenValue(anim.smartToken.value);
                 }
-                return false;
+                animations.splice(i, 1); // Remove finished animation
             }
-            return true;
-        });
+        }
     }
 }
