@@ -111,8 +111,10 @@ class Transition {
         this.inputArcs = [];
         this.outputArcs = [];
         this.active = false;
-        this.task = new TransitionTask(""); // Default empty task
-        this.tokenOrder = ""; // String of place names
+        this.pendingTokens = 0; // Track arriving tokens
+        this.pendingSmartTokens = []; // For S-Model
+        this.task = new TransitionTask("");
+        this.tokenOrder = "";
         this.passOnTrue = true;
         this.passOnFalse = false;
         this.passPreviousValue = false;
@@ -128,60 +130,54 @@ class Transition {
 
     fire(animations) {
         if (this.isEnabled() && !this.active) {
-            this.active = true;
-            this.inputArcs.forEach(a => {
-                for (let i = 0; i < a.weight; i++) {
-                    if (a.place.tokens > 0) {
-                        a.place.removeToken();
-                        animations.push(new TokenAnimation(a.place.x, a.place.y, this.x, this.y, null, a.place));
-                    }
-                }
-            });
             this.outputArcs.forEach(a => {
                 for (let i = 0; i < a.weight; i++) {
-                    animations.push(new TokenAnimation(this.x, this.y, a.place.x, a.place.y, a.place));
+                    const anim = new TokenAnimation(this.x, this.y, a.place.x, a.place.y, a.place);
+                    anim.transition = this; // For highlighting
+                    animations.push(anim);
                 }
             });
-            this.active = false;
         }
     }
 
     fireSmart(animations) {
         if (this.isEnabledSmart() && !this.active) {
-            this.active = true;
-            const inputTokens = [];
-            const order = this.tokenOrder ? this.tokenOrder.split(",").map(name => name.trim()) : [];
-            const orderedPlaces = order.length > 0 ? 
-                order.map(name => this.inputArcs.find(a => a.place.name === name)?.place) :
-                this.inputArcs.map(a => a.place);
-            orderedPlaces.forEach(place => {
-                if (place && place.tokens > 0) {
-                    inputTokens.push(new SmartToken(place.getTokenValue()));
-                    place.removeToken();
-                    animations.push(new TokenAnimation(place.x, place.y, this.x, this.y, null, place));
-                }
-            });
-            const result = this.task.execute(inputTokens);
+            const orderedTokens = this.tokenOrder ? 
+                this.tokenOrder.split(",").map(name => {
+                    const place = this.inputArcs.find(a => a.place.name === name.trim())?.place;
+                    return place && this.pendingSmartTokens.length > 0 ? this.pendingSmartTokens.shift() : null;
+                }).filter(t => t) : 
+                [...this.pendingSmartTokens];
+            
+            const result = this.task.execute(orderedTokens);
+            const previousValue = orderedTokens.length > 0 ? orderedTokens[0].value : 0;
+
             if (result) {
-                if (this.passOnTrue) {
-                    this.outputArcs.forEach(a => {
-                        animations.push(new TokenAnimation(this.x, this.y, a.place.x, a.place.y, a.place, null, result));
-                    });
-                }
-            } else if (this.passOnFalse && inputTokens.length > 0) {
                 this.outputArcs.forEach(a => {
-                    animations.push(new TokenAnimation(this.x, this.y, a.place.x, a.place.y, a.place, null, inputTokens[0]));
+                    const outputToken = (this.task.task.startsWith("!=") || this.task.task.startsWith("==")) ?
+                        (result.value === 1 && this.passOnTrue ? (this.passPreviousValue ? new SmartToken(previousValue) : new SmartToken(1)) :
+                         result.value === 0 && this.passOnFalse ? (this.passPreviousValue ? new SmartToken(previousValue) : new SmartToken(0)) : null) :
+                        (this.passPreviousValue ? new SmartToken(previousValue) : result);
+                    if (outputToken) {
+                        const anim = new TokenAnimation(this.x, this.y, a.place.x, a.place.y, a.place, null, outputToken);
+                        anim.transition = this; // For highlighting
+                        animations.push(anim);
+                    }
                 });
             }
-            this.active = false;
+            this.pendingSmartTokens = [];
         }
     }
 
-    draw(ctx, selected, iconSize) {
+    draw(ctx, selected, iconSize, highlighted = false) {
         const img = canvas.icons.transition;
         if (!img) {
             console.error("Transition icon not loaded!");
             return;
+        }
+        if (highlighted) {
+            ctx.fillStyle = "rgba(144, 238, 144, 0.5)"; // Light green with transparency
+            ctx.fillRect(this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
         }
         ctx.drawImage(img, this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
         if (selected) {
@@ -201,6 +197,7 @@ class Arc {
         this.type = "line";
         this.controlPoints = [];
         this.weight = 1;
+        this.highlighted = false; // For path highlighting
     }
 
     getWeight() {

@@ -176,7 +176,19 @@ class PetriNetCanvas {
         this.ctx.save();
         this.ctx.scale(this.zoomLevel, this.zoomLevel);
 
-        this.arcs.forEach(arc => arc.draw(this.ctx, this.selectedElements.includes(arc), this.iconSize));
+        // Draw arcs with highlighting
+        this.arcs.forEach(arc => {
+            arc.draw(this.ctx, this.selectedElements.includes(arc), this.iconSize);
+            if (arc.highlighted) {
+                this.ctx.strokeStyle = "rgba(144, 238, 144, 0.5)"; // Light green with transparency
+                this.ctx.lineWidth = 4;
+                this.ctx.beginPath();
+                this.ctx.moveTo(arc.start.x, arc.start.y);
+                this.ctx.lineTo(arc.end.x, arc.end.y);
+                this.ctx.stroke();
+            }
+        });
+
         if (this.drawingArc && this.arcStart && this.arcEnd) {
             this.ctx.strokeStyle = "green";
             this.ctx.beginPath();
@@ -184,11 +196,19 @@ class PetriNetCanvas {
             this.ctx.lineTo(this.arcEnd.x, this.arcEnd.y);
             this.ctx.stroke();
         }
+
         this.places.forEach(place => place.draw(this.ctx, this.selectedElements.includes(place), this.iconSize, this.tokenSize));
-        this.transitions.forEach(trans => trans.draw(this.ctx, this.selectedElements.includes(trans), this.iconSize));
+
+        // Draw transitions with highlighting
+        this.transitions.forEach(trans => {
+            const isHighlighted = this.animations.some(anim => anim.transition === trans && anim.toTransition && !anim.isFinished());
+            trans.draw(this.ctx, this.selectedElements.includes(trans), this.iconSize, isHighlighted);
+        });
+
         this.initializers.forEach(ini => ini.draw(this.ctx, this.selectedElements.includes(ini), this.iconSize));
         this.annotations.forEach(annot => annot.draw(this.ctx, this.selectedElements.includes(annot)));
         this.animations.forEach(anim => anim.draw(this.ctx, this.tokenSize));
+
         if (this.selectionArea) {
             this.ctx.fillStyle = "rgba(0, 120, 255, 0.2)";
             this.ctx.fillRect(this.selectionArea.x, this.selectionArea.y, this.selectionArea.width, this.selectionArea.height);
@@ -1724,6 +1744,8 @@ class PetriNetCanvas {
 
         const transition = enabled[Math.floor(Math.random() * enabled.length)];
         transition.active = true;
+        transition.pendingTokens = 0; // Track arriving tokens
+        if (this.isSmartModel) transition.pendingSmartTokens = []; // Clear pending tokens for S-Model
 
         // Generate animations from input places to transition
         transition.inputArcs.forEach(arc => {
@@ -1734,34 +1756,47 @@ class PetriNetCanvas {
                     new TokenAnimation(place.x, place.y, transition.x, transition.y, null, place, new SmartToken(place.getTokenValue())) :
                     new TokenAnimation(place.x, place.y, transition.x, transition.y, null, place);
                 anim.toTransition = true;
+                anim.transition = transition; // Link animation to transition for highlighting
                 this.animations.push(anim);
                 place.removeToken();
+                transition.pendingTokens++;
+                if (this.isSmartModel) transition.pendingSmartTokens.push(new SmartToken(place.getTokenValue()));
             }
         });
         this.updateStatus(`Acknowledging transition: ${transition.name}`, this.isSmartModel ? "S-Model" : "T-Model");
-        console.log(`Acknowledging transition: ${transition.name}`);
+        console.log(`Acknowledging transition: ${transition.name}, pending tokens: ${transition.pendingTokens}`);
     }
 
     updateAnimations() {
         for (let i = this.animations.length - 1; i >= 0; i--) {
             const anim = this.animations[i];
             anim.update();
+
+            // Highlight arc if token is traversing it
+            const arc = this.arcs.find(a => 
+                (a.start === anim.sourcePlace && a.end === anim.transition) ||
+                (a.start === anim.transition && a.end === anim.targetPlace)
+            );
+            if (arc && !anim.isFinished()) arc.highlighted = true;
+            else if (arc) arc.highlighted = false;
+
             if (anim.isFinished()) {
-                if (anim.toTransition) {
-                    const transition = this.transitions.find(t => 
-                        Math.abs(t.x - anim.endX) < 1 && Math.abs(t.y - anim.endY) < 1 && t.active
-                    );
-                    if (transition) {
-                        if (this.isSmartModel ? transition.isEnabledSmart() : transition.isEnabled()) {
-                            if (this.isSmartModel) {
-                                transition.fireSmart(this.animations);
-                            } else {
-                                transition.fire(this.animations);
-                            }
-                            this.updateStatus(`Fired transition: ${transition.name}`, this.isSmartModel ? "S-Model" : "T-Model");
-                            console.log(`Fired transition: ${transition.name}`);
+                if (anim.toTransition && anim.transition) {
+                    anim.transition.pendingTokens--;
+                    if (anim.transition.pendingTokens <= 0 && anim.transition.active) {
+                        // All input tokens have arrived, fire the transition
+                        if (this.isSmartModel ? anim.transition.isEnabledSmart() : anim.transition.isEnabled()) {
+                            setTimeout(() => {
+                                if (this.isSmartModel) {
+                                    anim.transition.fireSmart(this.animations);
+                                } else {
+                                    anim.transition.fire(this.animations);
+                                }
+                                this.updateStatus(`Fired transition: ${anim.transition.name}`, this.isSmartModel ? "S-Model" : "T-Model");
+                                console.log(`Fired transition: ${anim.transition.name}`);
+                            }, 500); // Delay to visualize tokens at transition
                         }
-                        transition.active = false;
+                        anim.transition.active = false;
                     }
                 } else if (anim.targetPlace) {
                     anim.targetPlace.addToken();
