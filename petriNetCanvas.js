@@ -1234,7 +1234,7 @@ class PetriNetCanvas {
             console.log("Annotation font changed to:", font, size);
         }
     }
-
+    
     updateButtonStates() {
         const hasDesign = this.designExists && 
                          (this.places.length > 0 || this.transitions.length > 0 || 
