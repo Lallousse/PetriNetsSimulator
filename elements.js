@@ -33,6 +33,10 @@ class Place {
 
     draw(ctx, selected, iconSize, tokenSize) {
         const img = selected ? canvas.icons.place : canvas.icons.place;
+        if (!img) {
+            console.error("Place icon not loaded!");
+            return;
+        }
         ctx.drawImage(img, this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
         ctx.fillStyle = "black";
         const visibleTokens = Math.min(this.tokens, 2);
@@ -130,6 +134,10 @@ class Transition {
 
     draw(ctx, selected, iconSize) {
         const img = selected ? canvas.icons.transition : (this.active ? canvas.icons.transition : canvas.icons.transition);
+        if (!img) {
+            console.error("Transition icon not loaded!");
+            return;
+        }
         ctx.drawImage(img, this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
         ctx.fillStyle = "black";
         ctx.fillText(this.name, this.x - ctx.measureText(this.name).width / 2, this.y + iconSize / 2 + 15);
@@ -215,6 +223,10 @@ class Initializer {
 
     draw(ctx, selected, iconSize) {
         const img = selected ? canvas.icons.ini : (this.isGenerating ? canvas.icons.ini : canvas.icons.ini);
+        if (!img) {
+            console.error("Initializer icon not loaded!");
+            return;
+        }
         ctx.drawImage(img, this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
         ctx.fillStyle = "black";
         ctx.fillText(this.name, this.x - ctx.measureText(this.name).width / 2, this.y + iconSize / 2 + 15);
