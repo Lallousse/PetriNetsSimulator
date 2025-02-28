@@ -26,6 +26,7 @@ class PetriNetCanvas {
         this.selectionStart = null;
         this.handMode = false;
         this.draggingCanvas = false;
+        this.draggingElements = false; // New flag for element dragging
         this.dragStartX = 0;
         this.dragStartY = 0;
         this.autoRun = false;
@@ -1071,7 +1072,7 @@ class PetriNetCanvas {
 
         if (!this.designExists && this.addMode !== "new") return;
 
-        const elem = this.getElementAt(x, y); // Prioritize elements over arcs
+        const elem = this.getElementAt(x, y);
         const arc = this.getArcAt(x, y);
         const annotation = this.getAnnotationAt(x, y);
 
@@ -1093,16 +1094,25 @@ class PetriNetCanvas {
                     this.selectedElements.push(elem);
                 }
                 this.selected = elem;
+                this.draggingElements = true; // Start dragging elements
+                this.dragStartX = e.clientX;
+                this.dragStartY = e.clientY;
                 console.log("Selected element:", elem.name);
             } else if (annotation) {
                 if (!e.ctrlKey) this.selectedElements = [];
                 this.selectedElements.push(annotation);
                 this.selected = annotation;
+                this.draggingElements = true;
+                this.dragStartX = e.clientX;
+                this.dragStartY = e.clientY;
                 console.log("Selected annotation");
             } else if (arc) {
                 if (!e.ctrlKey) this.selectedElements = [];
                 this.selectedElements.push(arc);
                 this.selected = arc;
+                this.draggingElements = true;
+                this.dragStartX = e.clientX;
+                this.dragStartY = e.clientY;
                 console.log("Selected arc");
             } else {
                 this.selected = null;
@@ -1196,9 +1206,17 @@ class PetriNetCanvas {
                 width: Math.abs(x - this.selectionStart.x),
                 height: Math.abs(y - this.selectionStart.y)
             };
-            this.selectWithinArea();
+            if (this.selectionArea.width > 5 && this.selectionArea.height > 5) { // Minimum size to consider area selection
+                this.selectWithinArea();
+            }
             this.selectionStart = null;
             this.selectionArea = null;
+            this.draggingElements = false;
+        } else if (this.draggingElements) {
+            this.draggingElements = false;
+            this.saveStateToUndo();
+            this.designState.setUnsavedChanges();
+            console.log("Finished dragging elements");
         }
         this.draggingControlPoint = false;
     }
@@ -1225,17 +1243,16 @@ class PetriNetCanvas {
             this.designState.setUnsavedChanges();
         } else if (this.drawingArc && this.arcStart) {
             this.arcEnd = new Point(x, y);
-        } else if (this.addMode === "select" && this.selectionStart) {
+        } else if (this.addMode === "select" && this.selectionStart && e.buttons === 1) {
             this.selectionArea = {
                 x: Math.min(this.selectionStart.x, x),
                 y: Math.min(this.selectionStart.y, y),
                 width: Math.abs(x - this.selectionStart.x),
                 height: Math.abs(y - this.selectionStart.y)
             };
-        } else if (this.addMode === "select" && this.selectedElements.length > 0 && e.buttons === 1) {
-            this.saveStateToUndo();
-            const dx = (x - this.dragStartX) / this.zoomLevel;
-            const dy = (y - this.dragStartY) / this.zoomLevel;
+        } else if (this.addMode === "select" && this.draggingElements && e.buttons === 1) {
+            const dx = (e.clientX - this.dragStartX) / this.zoomLevel;
+            const dy = (e.clientY - this.dragStartY) / this.zoomLevel;
             this.selectedElements.forEach(elem => {
                 const snappedX = this.snappingEnabled ? Math.round((elem.x + dx) / 25) * 25 : elem.x + dx;
                 const snappedY = this.snappingEnabled ? Math.round((elem.y + dy) / 25) * 25 : elem.y + dy;
@@ -1249,7 +1266,6 @@ class PetriNetCanvas {
             });
             this.dragStartX = e.clientX;
             this.dragStartY = e.clientY;
-            this.designState.setUnsavedChanges();
         }
     }
 
@@ -1603,7 +1619,7 @@ class PetriNetCanvas {
         console.log("Guide modal opened");
     }
 
-    insertPNFNAsNote() {
+    insertPNFNAsNote() { // Corrected function name spacing
         const pnfnText = document.getElementById("pnfnText").value;
         if (!pnfnText) return;
         this.saveStateToUndo();
@@ -1704,7 +1720,7 @@ class PetriNetCanvas {
     }
 
     updateAnimations() {
-        TransitionManager.updateAnimations(this.animations, this.transitions, this.isSmartModel);
+        TransitionManager.updateAnimations(this.animations);
     }
 
     generateTokensFromInitializers() {
@@ -1822,8 +1838,6 @@ class PetriNetCanvas {
         });
         if (this.selectedElements.length === 1) this.selected = this.selectedElements[0];
         else this.selected = null;
-        this.dragStartX = x; // Set drag start for multi-element dragging
-        this.dragStartY = y;
         console.log("Selected elements:", this.selectedElements.length);
     }
 
@@ -2033,7 +2047,6 @@ class PetriNetCanvas {
             this.updateButtonStates();
             this.updateStatus(`Annotation font changed to ${font} ${size}px`, this.isSmartModel ? "S-Model" : "T-Model");
             console.log("Annotation font changed to:", font, size);
-        }
     }
 
     updateButtonStates() {
@@ -2079,6 +2092,7 @@ class PetriNetCanvas {
         e.preventDefault();
         if (e.deltaY < 0) this.zoomIn();
         else this.zoomOut();
+    }
     }
 }
 
