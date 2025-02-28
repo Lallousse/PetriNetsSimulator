@@ -4,7 +4,7 @@ class Place {
         this.x = x;
         this.y = y;
         this.tokens = tokens;
-        this.smartToken = null;
+        this.smartToken = null; // For S-Model
     }
 
     addToken() {
@@ -12,14 +12,11 @@ class Place {
     }
 
     removeToken() {
-        if (this.tokens > 0) {
-            this.tokens--;
-            if (this.tokens === 0) this.smartToken = null;
-        }
+        if (this.tokens > 0) this.tokens--;
     }
 
-    hasEnoughTokens(amount) {
-        return this.tokens >= amount;
+    hasEnoughTokens(weight) {
+        return this.tokens >= weight;
     }
 
     getTokenValue() {
@@ -27,7 +24,7 @@ class Place {
     }
 
     setTokenValue(value) {
-        if (this.tokens > 0) this.smartToken = new SmartToken(value);
+        this.smartToken = new SmartToken(value);
     }
 
     draw(ctx, selected, iconSize, tokenSize) {
@@ -39,67 +36,30 @@ class Place {
         ctx.drawImage(img, this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
         if (selected) {
             ctx.fillStyle = "rgba(255, 255, 0, 0.3)";
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, iconSize / 2, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.fillRect(this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
         }
-
         ctx.fillStyle = "black";
-        const radius = iconSize / 2 - 4;
-        tokenSize = 6;
-
-        // Draw tokens based solely on this.tokens, not animations
-        if (this.tokens === 1) {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, tokenSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-        } else if (this.tokens === 2) {
-            ctx.beginPath();
-            ctx.arc(this.x - tokenSize, this.y, tokenSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(this.x + tokenSize, this.y, tokenSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-        } else if (this.tokens === 3) {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y - tokenSize, tokenSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(this.x - tokenSize, this.y + tokenSize / 2, tokenSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(this.x + tokenSize, this.y + tokenSize / 2, tokenSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-        } else if (this.tokens === 4) {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y - tokenSize, tokenSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(this.x - tokenSize, this.y, tokenSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(this.x + tokenSize, this.y, tokenSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(this.x, this.y + tokenSize, tokenSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-        } else if (this.tokens > 4) {
-            const smallTokenSize = tokenSize / 1.5;
-            ctx.beginPath();
-            ctx.arc(this.x - smallTokenSize, this.y - smallTokenSize, smallTokenSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(this.x + smallTokenSize, this.y - smallTokenSize, smallTokenSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(this.x - smallTokenSize, this.y + smallTokenSize, smallTokenSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(this.x + smallTokenSize, this.y + smallTokenSize, smallTokenSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillText("+", this.x - 3, this.y + 5);
-        }
         ctx.fillText(this.name, this.x - ctx.measureText(this.name).width / 2, this.y + iconSize / 2 + 15);
+
+        if (this.tokens > 0) {
+            const radius = tokenSize / 2;
+            if (this.tokens === 1) {
+                ctx.fillStyle = "black";
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                const angleStep = (2 * Math.PI) / this.tokens;
+                for (let i = 0; i < this.tokens; i++) {
+                    const tokenX = this.x + (iconSize / 3) * Math.cos(angleStep * i);
+                    const tokenY = this.y + (iconSize / 3) * Math.sin(angleStep * i);
+                    ctx.fillStyle = "black";
+                    ctx.beginPath();
+                    ctx.arc(tokenX, tokenY, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
     }
 }
 
@@ -147,15 +107,17 @@ class Transition {
                 const order = this.tokenOrder.split(",").map(name => name.trim());
                 const tokenMap = new Map();
                 this.inputArcs.forEach(arc => tokenMap.set(arc.place.name, []));
-                this.pendingSmartTokens.forEach(token => {
-                    const place = this.inputArcs.find(a => a.place.tokens > 0 || this.pendingSmartTokens.length > 0)?.place;
-                    if (place) tokenMap.get(place.name).push(token);
-                });
+                let tokenIndex = 0;
+                for (const arc of this.inputArcs) {
+                    if (tokenIndex < this.pendingSmartTokens.length) {
+                        tokenMap.get(arc.place.name).push(this.pendingSmartTokens[tokenIndex++]);
+                    }
+                }
                 order.forEach(name => {
                     const tokens = tokenMap.get(name);
                     if (tokens && tokens.length > 0) orderedTokens.push(tokens.shift());
                 });
-                tokenMap.forEach((tokens, name) => orderedTokens.push(...tokens));
+                tokenMap.forEach(tokens => orderedTokens.push(...tokens));
             } else {
                 orderedTokens.push(...this.pendingSmartTokens);
             }
@@ -200,6 +162,37 @@ class Transition {
     }
 }
 
+class Initializer {
+    constructor(name, x, y, tokensToGenerate = 1, tokensPerSecond = 1.0, isContinuous = false, tokenValue = 0) {
+        this.name = name;
+        this.x = x;
+        this.y = y;
+        this.tokensToGenerate = tokensToGenerate;
+        this.tokensPerSecond = tokensPerSecond;
+        this.isContinuous = isContinuous;
+        this.tokenValue = tokenValue; // For S-Model
+        this.tokensGenerated = 0;
+        this.lastGenerationTime = Date.now();
+        this.isGenerating = false;
+        this.outputPlace = null;
+    }
+
+    draw(ctx, selected, iconSize) {
+        const img = canvas.icons.ini;
+        if (!img) {
+            console.error("Initializer icon not loaded!");
+            return;
+        }
+        ctx.drawImage(img, this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
+        if (selected) {
+            ctx.fillStyle = "rgba(255, 255, 0, 0.3)";
+            ctx.fillRect(this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
+        }
+        ctx.fillStyle = "black";
+        ctx.fillText(this.name, this.x - ctx.measureText(this.name).width / 2, this.y + iconSize / 2 + 15);
+    }
+}
+
 class Arc {
     constructor(start, end, isInput) {
         this.start = start;
@@ -233,7 +226,7 @@ class Arc {
 
         if (this.highlighted) {
             ctx.strokeStyle = "#90EE90"; // Solid light green
-            ctx.lineWidth = 3; // Slightly thicker for visibility
+            ctx.lineWidth = 3;
             ctx.beginPath();
             ctx.moveTo(adjStartX, adjStartY);
             ctx.lineTo(adjEndX, adjEndY);
@@ -269,133 +262,8 @@ class Arc {
     }
 }
 
-class Initializer {
-    constructor(name, x, y, tokensToGenerate = 0, tokensPerSecond = 1.0, isContinuous = false, tokenValue = 0) {
-        this.name = name;
-        this.x = x;
-        this.y = y;
-        this.tokensToGenerate = tokensToGenerate;
-        this.tokensPerSecond = tokensPerSecond;
-        this.isContinuous = isContinuous;
-        this.tokenValue = tokenValue;
-        this.tokensGenerated = 0;
-        this.lastGenerationTime = Date.now();
-        this.outputPlace = null;
-        this.isGenerating = false;
-    }
-
-    draw(ctx, selected, iconSize) {
-        const img = canvas.icons.ini;
-        if (!img) {
-            console.error("Initializer icon not loaded!");
-            return;
-        }
-        ctx.drawImage(img, this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
-        if (selected) {
-            ctx.fillStyle = "rgba(255, 255, 0, 0.3)";
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, iconSize / 2, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.fillStyle = "black";
-        ctx.fillText(this.name, this.x - ctx.measureText(this.name).width / 2, this.y + iconSize / 2 + 15);
-    }
-}
-
-class Point {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-    }
-}
-
-class SmartToken {
-    constructor(value) {
-        this.value = value;
-    }
-}
-
-class TransitionTask {
-    constructor(task) {
-        this.task = task && task.trim() ? task.trim() : "gate";
-    }
-
-    execute(inputTokens) {
-        if (this.task === "gate") {
-            return inputTokens.length > 0 ? new SmartToken(inputTokens[0].value) : null;
-        }
-
-        if (inputTokens.length === 0) return null;
-
-        switch (this.task) {
-            case "+":
-                return new SmartToken(inputTokens.reduce((sum, t) => sum + t.value, 0));
-            case "-":
-                if (inputTokens.length < 2) return null;
-                return new SmartToken(inputTokens[0].value - inputTokens[1].value);
-            case "*":
-                return new SmartToken(inputTokens.reduce((prod, t) => prod * t.value, 1));
-            case "/":
-                if (inputTokens.length < 2 || inputTokens[1].value === 0) return null;
-                return new SmartToken(inputTokens[0].value / inputTokens[1].value);
-            case "cp":
-                return inputTokens[0] ? new SmartToken(inputTokens[0].value) : null;
-            default:
-                if (this.task.startsWith("!=")) {
-                    const compareValue = parseFloat(this.task.substring(2).trim());
-                    return new SmartToken(inputTokens[0].value !== compareValue ? 1 : 0);
-                } else if (this.task.startsWith("==")) {
-                    const compareValue = parseFloat(this.task.substring(2).trim());
-                    return new SmartToken(inputTokens[0].value === compareValue ? 1 : 0);
-                } else if (this.task.startsWith("p ")) {
-                    return inputTokens[0] ? new SmartToken(inputTokens[0].value) : null;
-                }
-                return null;
-        }
-    }
-
-    getPauseDuration() {
-        if (this.task.startsWith("p ")) {
-            return parseFloat(this.task.substring(2).trim()) * 1000; // Convert seconds to milliseconds
-        }
-        return 0;
-    }
-}
-
-class TokenAnimation {
-    constructor(startX, startY, endX, endY, targetPlace, sourcePlace = null, smartToken = null) {
-        this.startX = startX;
-        this.startY = startY;
-        this.endX = endX;
-        this.endY = endY;
-        this.targetPlace = targetPlace;
-        this.sourcePlace = sourcePlace;
-        this.smartToken = smartToken;
-        this.progress = 0;
-        this.toTransition = !!sourcePlace;
-    }
-
-    update() {
-        this.progress += canvas.animationSpeedBase * canvas.animationSpeed;
-        if (this.progress > 1) this.progress = 1;
-    }
-
-    isFinished() {
-        return this.progress >= 1;
-    }
-
-    draw(ctx, tokenSize) {
-        const x = this.startX + (this.endX - this.startX) * this.progress;
-        const y = this.startY + (this.endY - this.startY) * this.progress;
-        ctx.fillStyle = "black";
-        ctx.beginPath();
-        ctx.arc(x, y, tokenSize / 2, 0, Math.PI * 2);
-        ctx.fill();
-    }
-}
-
 class Annotation {
-    constructor(text, x, y, fontName = "Arial", fontSize = 12, color = "black", strokeWeight = 1) {
+    constructor(text, x, y, fontName = "Times New Roman", fontSize = 12, color = "black", strokeWeight = 1) {
         this.text = text;
         this.x = x;
         this.y = y;
@@ -406,18 +274,56 @@ class Annotation {
     }
 
     draw(ctx, selected) {
-        ctx.fillStyle = this.color;
         ctx.font = `${this.fontSize}px ${this.fontName}`;
+        ctx.fillStyle = this.color;
+        ctx.strokeStyle = this.color;
         ctx.lineWidth = this.strokeWeight;
         const lines = this.text.split("\n");
         lines.forEach((line, i) => {
             ctx.fillText(line, this.x, this.y + i * this.fontSize);
+            if (selected) {
+                const width = ctx.measureText(line).width;
+                ctx.strokeRect(this.x - 2, this.y + i * this.fontSize - this.fontSize, width + 4, this.fontSize + 2);
+            }
         });
-        if (selected) {
-            const width = Math.max(...lines.map(line => ctx.measureText(line).width));
-            const height = this.fontSize * lines.length;
-            ctx.fillStyle = "rgba(255, 255, 0, 0.3)";
-            ctx.fillRect(this.x - 5, this.y - this.fontSize - 5, width + 10, height + 10);
-        }
+    }
+}
+
+class SmartToken {
+    constructor(value) {
+        this.value = value;
+    }
+}
+
+class TokenAnimation {
+    constructor(startX, startY, endX, endY, targetPlace = null, sourcePlace = null, smartToken = null) {
+        this.startX = startX;
+        this.startY = startY;
+        this.endX = endX;
+        this.endY = endY;
+        this.targetPlace = targetPlace;
+        this.sourcePlace = sourcePlace;
+        this.smartToken = smartToken;
+        this.progress = 0.0;
+        this.toTransition = false;
+        this.transition = null; // Reference for highlighting
+    }
+
+    update() {
+        this.progress += canvas.animationSpeedBase * canvas.animationSpeed;
+        if (this.progress > 1.0) this.progress = 1.0;
+    }
+
+    isFinished() {
+        return this.progress >= 1.0;
+    }
+
+    draw(ctx, tokenSize) {
+        const currentX = this.startX + (this.endX - this.startX) * this.progress;
+        const currentY = this.startY + (this.endY - this.startY) * this.progress;
+        ctx.fillStyle = "black";
+        ctx.beginPath();
+        ctx.arc(currentX, currentY, tokenSize / 2, 0, Math.PI * 2);
+        ctx.fill();
     }
 }

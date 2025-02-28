@@ -176,15 +176,16 @@ class PetriNetCanvas {
         this.ctx.save();
         this.ctx.scale(this.zoomLevel, this.zoomLevel);
 
-        // Draw arcs with highlighting
         this.arcs.forEach(arc => {
             arc.draw(this.ctx, this.selectedElements.includes(arc), this.iconSize);
             if (arc.highlighted) {
-                this.ctx.strokeStyle = "rgba(144, 238, 144, 0.5)"; // Light green with transparency
-                this.ctx.lineWidth = 4;
+                this.ctx.strokeStyle = "#90EE90"; // Solid light green
+                this.ctx.lineWidth = 3;
                 this.ctx.beginPath();
-                this.ctx.moveTo(arc.start.x, arc.start.y);
-                this.ctx.lineTo(arc.end.x, arc.end.y);
+                this.ctx.moveTo(arc.start.x + this.iconSize / 2 * Math.cos(Math.atan2(arc.end.y - arc.start.y, arc.end.x - arc.start.x)),
+                                arc.start.y + this.iconSize / 2 * Math.sin(Math.atan2(arc.end.y - arc.start.y, arc.end.x - arc.start.x)));
+                this.ctx.lineTo(arc.end.x - this.iconSize / 2 * Math.cos(Math.atan2(arc.end.y - arc.start.y, arc.end.x - arc.start.x)),
+                                arc.end.y - this.iconSize / 2 * Math.sin(Math.atan2(arc.end.y - arc.start.y, arc.end.x - arc.start.x)));
                 this.ctx.stroke();
             }
         });
@@ -198,13 +199,10 @@ class PetriNetCanvas {
         }
 
         this.places.forEach(place => place.draw(this.ctx, this.selectedElements.includes(place), this.iconSize, this.tokenSize));
-
-        // Draw transitions with highlighting
         this.transitions.forEach(trans => {
             const isHighlighted = this.animations.some(anim => anim.transition === trans && anim.toTransition && !anim.isFinished());
             trans.draw(this.ctx, this.selectedElements.includes(trans), this.iconSize, isHighlighted);
         });
-
         this.initializers.forEach(ini => ini.draw(this.ctx, this.selectedElements.includes(ini), this.iconSize));
         this.annotations.forEach(annot => annot.draw(this.ctx, this.selectedElements.includes(annot)));
         this.animations.forEach(anim => anim.draw(this.ctx, this.tokenSize));
@@ -1784,6 +1782,7 @@ class PetriNetCanvas {
                 if (anim.toTransition && anim.transition) {
                     anim.transition.pendingTokens--;
                     if (anim.transition.pendingTokens <= 0 && anim.transition.active) {
+                        // All input tokens have arrived, fire the transition
                         if (this.isSmartModel ? anim.transition.isEnabledSmart() : anim.transition.isEnabled()) {
                             const delay = this.isSmartModel ? anim.transition.task.getPauseDuration() : 500;
                             setTimeout(() => {
