@@ -182,10 +182,9 @@ class PetriNetCanvas {
                 this.ctx.strokeStyle = "#90EE90"; // Solid light green
                 this.ctx.lineWidth = 3;
                 this.ctx.beginPath();
-                this.ctx.moveTo(arc.start.x + this.iconSize / 2 * Math.cos(Math.atan2(arc.end.y - arc.start.y, arc.end.x - arc.start.x)),
-                                arc.start.y + this.iconSize / 2 * Math.sin(Math.atan2(arc.end.y - arc.start.y, arc.end.x - arc.start.x)));
-                this.ctx.lineTo(arc.end.x - this.iconSize / 2 * Math.cos(Math.atan2(arc.end.y - arc.start.y, arc.end.x - arc.start.x)),
-                                arc.end.y - this.iconSize / 2 * Math.sin(Math.atan2(arc.end.y - arc.start.y, arc.end.x - arc.start.x)));
+                const angle = Math.atan2(arc.end.y - arc.start.y, arc.end.x - arc.start.x);
+                this.ctx.moveTo(arc.start.x + this.iconSize / 2 * Math.cos(angle), arc.start.y + this.iconSize / 2 * Math.sin(angle));
+                this.ctx.lineTo(arc.end.x - this.iconSize / 2 * Math.cos(angle), arc.end.y - this.iconSize / 2 * Math.sin(angle));
                 this.ctx.stroke();
             }
         });
@@ -1189,30 +1188,32 @@ class PetriNetCanvas {
         } else if (this.drawingArc && this.arcStart) {
             const start = this.getElementAt(this.arcStart.x, this.arcStart.y);
             const elem = this.getElementAt(x, y);
-            if (start instanceof Place && elem instanceof Transition) {
-                this.saveStateToUndo();
-                const arc = new Arc(start, elem, true);
-                this.arcs.push(arc);
-                elem.inputArcs.push({ place: start, weight: 1 });
-                this.designState.setUnsavedChanges();
-                this.updateButtonStates();
-                console.log("Added input arc");
-            } else if (start instanceof Transition && elem instanceof Place) {
-                this.saveStateToUndo();
-                const arc = new Arc(start, elem, false);
-                this.arcs.push(arc);
-                start.outputArcs.push({ place: elem, weight: 1 });
-                this.designState.setUnsavedChanges();
-                this.updateButtonStates();
-                console.log("Added output arc");
-            } else if (start instanceof Initializer && elem instanceof Place) {
-                this.saveStateToUndo();
-                const arc = new Arc(start, elem, false);
-                this.arcs.push(arc);
-                start.outputPlace = elem;
-                this.designState.setUnsavedChanges();
-                this.updateButtonStates();
-                console.log("Added initializer arc");
+            if (start && elem) {
+                if (start instanceof Place && elem instanceof Transition) {
+                    this.saveStateToUndo();
+                    const arc = new Arc(start, elem, true);
+                    this.arcs.push(arc);
+                    elem.inputArcs.push({ place: start, weight: 1 });
+                    this.designState.setUnsavedChanges();
+                    this.updateButtonStates();
+                    console.log("Added input arc from", start.name, "to", elem.name);
+                } else if (start instanceof Transition && elem instanceof Place) {
+                    this.saveStateToUndo();
+                    const arc = new Arc(start, elem, false);
+                    this.arcs.push(arc);
+                    start.outputArcs.push({ place: elem, weight: 1 });
+                    this.designState.setUnsavedChanges();
+                    this.updateButtonStates();
+                    console.log("Added output arc from", start.name, "to", elem.name);
+                } else if (start instanceof Initializer && elem instanceof Place) {
+                    this.saveStateToUndo();
+                    const arc = new Arc(start, elem, false);
+                    this.arcs.push(arc);
+                    start.outputPlace = elem;
+                    this.designState.setUnsavedChanges();
+                    this.updateButtonStates();
+                    console.log("Added initializer arc from", start.name, "to", elem.name);
+                }
             }
             this.arcStart = null;
             this.arcEnd = null;
@@ -1745,7 +1746,6 @@ class PetriNetCanvas {
         transition.pendingTokens = 0;
         if (this.isSmartModel) transition.pendingSmartTokens = [];
 
-        // Generate animations from input places to transition
         transition.inputArcs.forEach(arc => {
             const place = arc.place;
             const weight = this.isSmartModel ? 1 : arc.weight;
@@ -1770,7 +1770,6 @@ class PetriNetCanvas {
             const anim = this.animations[i];
             anim.update();
 
-            // Highlight arc if token is traversing it
             const arc = this.arcs.find(a => 
                 (a.start === anim.sourcePlace && a.end === anim.transition) ||
                 (a.start === anim.transition && a.end === anim.targetPlace)
@@ -1782,7 +1781,6 @@ class PetriNetCanvas {
                 if (anim.toTransition && anim.transition) {
                     anim.transition.pendingTokens--;
                     if (anim.transition.pendingTokens <= 0 && anim.transition.active) {
-                        // All input tokens have arrived, fire the transition
                         if (this.isSmartModel ? anim.transition.isEnabledSmart() : anim.transition.isEnabled()) {
                             const delay = this.isSmartModel ? anim.transition.task.getPauseDuration() : 500;
                             setTimeout(() => {
@@ -1793,7 +1791,7 @@ class PetriNetCanvas {
                                 }
                                 this.updateStatus(`Fired transition: ${anim.transition.name}`, this.isSmartModel ? "S-Model" : "T-Model");
                                 console.log(`Fired transition: ${anim.transition.name}`);
-                            }, delay || 500); // Use task delay or default 500ms
+                            }, delay || 500);
                         }
                         anim.transition.active = false;
                     }
@@ -1954,16 +1952,23 @@ class PetriNetCanvas {
             places: this.places.map(p => ({ ...p, smartToken: p.smartToken ? { value: p.smartToken.value } : null })),
             transitions: this.transitions.map(t => ({
                 ...t,
-                inputArcs: [...t.inputArcs],
-                outputArcs: [...t.outputArcs],
+                inputArcs: t.inputArcs.map(a => ({ place: a.place, weight: a.weight })),
+                outputArcs: t.outputArcs.map(a => ({ place: a.place, weight: a.weight })),
                 task: t.task ? { task: t.task.task } : null,
                 tokenOrder: t.tokenOrder,
                 passOnTrue: t.passOnTrue,
                 passOnFalse: t.passOnFalse,
                 passPreviousValue: t.passPreviousValue
             })),
-            arcs: this.arcs.map(a => ({ ...a, type: a.type, controlPoints: a.controlPoints.map(cp => ({ ...cp })), weight: a.weight })),
-            initializers: this.initializers.map(i => ({ ...i })),
+            arcs: this.arcs.map(a => ({ 
+                start: a.start, 
+                end: a.end, 
+                isInput: a.isInput, 
+                type: a.type, 
+                controlPoints: a.controlPoints.map(cp => ({ ...cp })), 
+                weight: a.weight 
+            })),
+            initializers: this.initializers.map(i => ({ ...i, outputPlace: i.outputPlace })),
             annotations: this.annotations.map(a => ({ ...a })),
             selectedElements: [...this.selectedElements],
             isSmartModel: this.isSmartModel,
@@ -2009,16 +2014,23 @@ class PetriNetCanvas {
             places: this.places.map(p => ({ ...p, smartToken: p.smartToken ? { value: p.smartToken.value } : null })),
             transitions: this.transitions.map(t => ({
                 ...t,
-                inputArcs: [...t.inputArcs],
-                outputArcs: [...t.outputArcs],
+                inputArcs: t.inputArcs.map(a => ({ place: a.place, weight: a.weight })),
+                outputArcs: t.outputArcs.map(a => ({ place: a.place, weight: a.weight })),
                 task: t.task ? { task: t.task.task } : null,
                 tokenOrder: t.tokenOrder,
                 passOnTrue: t.passOnTrue,
                 passOnFalse: t.passOnFalse,
                 passPreviousValue: t.passPreviousValue
             })),
-            arcs: this.arcs.map(a => ({ ...a, type: a.type, controlPoints: a.controlPoints.map(cp => ({ ...cp })), weight: a.weight })),
-            initializers: this.initializers.map(i => ({ ...i })),
+            arcs: this.arcs.map(a => ({ 
+                start: a.start, 
+                end: a.end, 
+                isInput: a.isInput, 
+                type: a.type, 
+                controlPoints: a.controlPoints.map(cp => ({ ...cp })), 
+                weight: a.weight 
+            })),
+            initializers: this.initializers.map(i => ({ ...i, outputPlace: i.outputPlace })),
             annotations: this.annotations.map(a => ({ ...a })),
             selectedElements: [...this.selectedElements],
             isSmartModel: this.isSmartModel,
@@ -2053,29 +2065,29 @@ class PetriNetCanvas {
         this.initializers = state.initializers.map(i => 
             new Initializer(i.name, i.x, i.y, i.tokensToGenerate, i.tokensPerSecond, i.isContinuous, i.tokenValue || 0));
         this.arcs = state.arcs.map(a => {
-            const start = a.start instanceof Place ? this.places[this.places.findIndex(p => p.name === a.start.name)] :
-                          a.start instanceof Transition ? this.transitions[this.transitions.findIndex(t => t.name === a.start.name)] :
-                          this.initializers[this.initializers.findIndex(i => i.name === a.start.name)];
-            const end = a.end instanceof Place ? this.places[this.places.findIndex(p => p.name === a.end.name)] :
-                        this.transitions[this.transitions.findIndex(t => t.name === a.end.name)];
+            const start = a.start instanceof Place ? this.places.find(p => p.name === a.start.name) :
+                          a.start instanceof Transition ? this.transitions.find(t => t.name === a.start.name) :
+                          this.initializers.find(i => i.name === a.start.name);
+            const end = a.end instanceof Place ? this.places.find(p => p.name === a.end.name) :
+                        this.transitions.find(t => t.name === a.end.name);
             const arc = new Arc(start, end, a.isInput);
             arc.controlPoints = a.controlPoints.map(cp => ({ x: cp.x, y: cp.y }));
             arc.weight = a.weight || 1;
             return arc;
         });
         this.transitions.forEach((t, i) => {
-            t.inputArcs = state.transitions[i].inputArcs.map(a => ({ 
-                place: this.places[this.places.findIndex(p => p.name === a.place.name)], 
-                weight: a.weight 
+            t.inputArcs = state.transitions[i].inputArcs.map(a => ({
+                place: this.places.find(p => p.name === a.place.name),
+                weight: a.weight
             }));
-            t.outputArcs = state.transitions[i].outputArcs.map(a => ({ 
-                place: this.places[this.places.findIndex(p => p.name === a.place.name)], 
-                weight: a.weight 
+            t.outputArcs = state.transitions[i].outputArcs.map(a => ({
+                place: this.places.find(p => p.name === a.place.name),
+                weight: a.weight
             }));
         });
         this.initializers.forEach((i, idx) => {
             if (state.initializers[idx].outputPlace) {
-                i.outputPlace = this.places[this.places.findIndex(p => p.name === state.initializers[idx].outputPlace.name)];
+                i.outputPlace = this.places.find(p => p.name === state.initializers[idx].outputPlace.name);
             }
         });
         this.annotations = state.annotations.map(a => 
