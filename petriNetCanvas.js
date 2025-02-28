@@ -148,11 +148,7 @@ class PetriNetCanvas {
 
         document.getElementById("zoomInBtn").addEventListener("click", () => this.zoomIn());
         document.getElementById("zoomOutBtn").addEventListener("click", () => this.zoomOut());
-        document.getElementById("guideBtn").addEventListener("click", () => {
-            const modal = document.getElementById("guideModal");
-            modal.style.display = "block"; // Always show on click
-            this.showGuide();
-        });
+
         window.addEventListener("keydown", (e) => {
             if (e.ctrlKey && e.key === "z") this.undo();
             if (e.ctrlKey && e.shiftKey && e.key === "Z") this.redo();
@@ -288,6 +284,7 @@ class PetriNetCanvas {
             }
             document.body.removeChild(input);
             this.editingElement = null;
+            this.setMode("select"); // Ensure mode switches to select
             this.updateButtonStates();
         };
 
@@ -487,18 +484,22 @@ class PetriNetCanvas {
         modal.appendChild(content);
         document.body.appendChild(modal);
 
-        let offsetX, offsetY;
+        let offsetX, offsetY, isDragging = false;
         header.onmousedown = (e) => {
             if (e.target !== header) return;
             const rect = content.getBoundingClientRect();
             offsetX = e.clientX - rect.left;
             offsetY = e.clientY - rect.top;
+            isDragging = true;
             document.onmousemove = (e) => {
-                content.style.left = `${e.clientX - offsetX}px`;
-                content.style.top = `${e.clientY - offsetY}px`;
-                content.style.transform = "none";
+                if (isDragging) {
+                    content.style.left = `${e.clientX - offsetX}px`;
+                    content.style.top = `${e.clientY - offsetY}px`;
+                    content.style.transform = "none"; // Remove transform to avoid offset
+                }
             };
             document.onmouseup = () => {
+                isDragging = false;
                 document.onmousemove = null;
                 document.onmouseup = null;
             };
@@ -518,25 +519,7 @@ class PetriNetCanvas {
             const nets = analyzer.analyze();
             let text = "";
             nets.forEach((net, i) => {
-                text += `Net ${i + 1}:\nPN = {P, T, I, O, M₀}\n`;
-                text += `P = {${Array.from(net.places).map(p => p.name).join(", ")}}\n`;
-                text += `T = {${Array.from(net.transitions).map(t => t.name).join(", ")}}\n\n`;
-                
-                text += net.inputFunction.size > 0 ? "I:\n" : "";
-                net.inputFunction.forEach((weight, key) => {
-                    text += `I(${key.replace(",", ", ")}) = ${this.isSmartModel ? (weight > 0 ? 1 : 0) : weight}\n`;
-                });
-                
-                text += net.outputFunction.size > 0 ? "\nO:\n" : "";
-                net.outputFunction.forEach((weight, key) => {
-                    text += `O(${key.replace(",", ", ")}) = ${this.isSmartModel ? (weight > 0 ? 1 : 0) : weight}\n`;
-                });
-                
-                text += "\nM₀ =\n";
-                Array.from(net.places).forEach(p => {
-                    text += `    |  ${p.tokens} |\n`;
-                });
-                text += "\n";
+                text += `Net ${i + 1}:\n${net.toFormalNotation(this.isSmartModel)}\n\n`;
             });
 
             const modal = document.createElement("div");
@@ -626,22 +609,7 @@ class PetriNetCanvas {
                 const nets = new NetAnalyzer(this).analyze();
                 let newText = "";
                 nets.forEach((net, i) => {
-                    newText += `Net ${i + 1}:\nPN = {P, T, I, O, M₀}\n`;
-                    newText += `P = {${Array.from(net.places).map(p => p.name).join(", ")}}\n`;
-                    newText += `T = {${Array.from(net.transitions).map(t => t.name).join(", ")}}\n\n`;
-                    newText += net.inputFunction.size > 0 ? "I:\n" : "";
-                    net.inputFunction.forEach((weight, key) => {
-                        newText += `I(${key.replace(",", ", ")}) = ${this.isSmartModel ? (weight > 0 ? 1 : 0) : weight}\n`;
-                    });
-                    newText += net.outputFunction.size > 0 ? "\nO:\n" : "";
-                    net.outputFunction.forEach((weight, key) => {
-                        newText += `O(${key.replace(",", ", ")}) = ${this.isSmartModel ? (weight > 0 ? 1 : 0) : weight}\n`;
-                    });
-                    newText += "\nM₀ =\n";
-                    Array.from(net.places).forEach(p => {
-                        newText += `    |  ${p.tokens} |\n`;
-                    });
-                    newText += "\n";
+                    newText += `Net ${i + 1}:\n${net.toFormalNotation(this.isSmartModel)}\n\n`;
                 });
                 textarea.value = newText;
             };
@@ -694,18 +662,22 @@ class PetriNetCanvas {
             modal.appendChild(content);
             document.body.appendChild(modal);
 
-            let offsetX, offsetY;
+            let offsetX, offsetY, isDragging = false;
             header.onmousedown = (e) => {
                 if (e.target !== header) return;
                 const rect = content.getBoundingClientRect();
                 offsetX = e.clientX - rect.left;
                 offsetY = e.clientY - rect.top;
+                isDragging = true;
                 document.onmousemove = (e) => {
-                    content.style.left = `${e.clientX - offsetX}px`;
-                    content.style.top = `${e.clientY - offsetY}px`;
-                    content.style.transform = "none";
+                    if (isDragging) {
+                        content.style.left = `${e.clientX - offsetX}px`;
+                        content.style.top = `${e.clientY - offsetY}px`;
+                        content.style.transform = "none";
+                    }
                 };
                 document.onmouseup = () => {
+                    isDragging = false;
                     document.onmousemove = null;
                     document.onmouseup = null;
                 };
@@ -800,7 +772,6 @@ class PetriNetCanvas {
                 netLabel.style.font = "bold 14px Monospaced";
                 tableContainer.appendChild(netLabel);
 
-                // Input Matrix Table
                 const inputLabel = document.createElement("label");
                 inputLabel.textContent = "Input Matrix:";
                 inputLabel.style.font = "bold 12px Monospaced";
@@ -812,7 +783,7 @@ class PetriNetCanvas {
                 inputTable.style.marginBottom = "10px";
 
                 const inputHeader = document.createElement("tr");
-                inputHeader.appendChild(document.createElement("th")); // Empty cell for place column
+                inputHeader.appendChild(document.createElement("th"));
                 transitionList.forEach(t => {
                     const th = document.createElement("th");
                     th.textContent = t.name;
@@ -843,7 +814,6 @@ class PetriNetCanvas {
                 });
                 tableContainer.appendChild(inputTable);
 
-                // Output Matrix Table
                 const outputLabel = document.createElement("label");
                 outputLabel.textContent = "Output Matrix:";
                 outputLabel.style.font = "bold 12px Monospaced";
@@ -855,7 +825,7 @@ class PetriNetCanvas {
                 outputTable.style.marginBottom = "10px";
 
                 const outputHeader = document.createElement("tr");
-                outputHeader.appendChild(document.createElement("th")); // Empty cell for place column
+                outputHeader.appendChild(document.createElement("th"));
                 transitionList.forEach(t => {
                     const th = document.createElement("th");
                     th.textContent = t.name;
@@ -1070,18 +1040,22 @@ class PetriNetCanvas {
             modal.appendChild(content);
             document.body.appendChild(modal);
 
-            let offsetX, offsetY;
+            let offsetX, offsetY, isDragging = false;
             header.onmousedown = (e) => {
                 if (e.target !== header) return;
                 const rect = content.getBoundingClientRect();
                 offsetX = e.clientX - rect.left;
                 offsetY = e.clientY - rect.top;
+                isDragging = true;
                 document.onmousemove = (e) => {
-                    content.style.left = `${e.clientX - offsetX}px`;
-                    content.style.top = `${e.clientY - offsetY}px`;
-                    content.style.transform = "none";
+                    if (isDragging) {
+                        content.style.left = `${e.clientX - offsetX}px`;
+                        content.style.top = `${e.clientY - offsetY}px`;
+                        content.style.transform = "none";
+                    }
                 };
                 document.onmouseup = () => {
+                    isDragging = false;
                     document.onmousemove = null;
                     document.onmouseup = null;
                 };
@@ -1314,7 +1288,7 @@ class PetriNetCanvas {
             const annotation = this.getAnnotationAt(x, y);
             if (!(elem === this.editingElement || arc === this.editingElement || annotation === this.editingElement)) {
                 this.finishEditing(true);
-                this.setMode("select"); // Switch back to select mode after editing
+                this.setMode("select"); // Ensure mode switches to prevent retrigger
             }
         }
     }
@@ -1569,7 +1543,7 @@ class PetriNetCanvas {
             - Input arc weights: Number of tokens required to enable transition.<br>
             - Output arc weights: Number of tokens produced per firing to output places.<br>
         `;
-        modal.style.display = "block";
+        modal.style.display = "block"; // Always show modal
         this.updateStatus("Guide opened", this.isSmartModel ? "S-Model" : "T-Model");
         console.log("Guide modal opened");
     }
@@ -1686,11 +1660,11 @@ class PetriNetCanvas {
     simulateStep() {
         const enabled = this.transitions.filter(t => {
             const isEnabled = this.isSmartModel ? t.isEnabledSmart() : t.isEnabled();
-            return isEnabled && !t.active && this.allTokensArrived(t);
+            return isEnabled && !t.active;
         });
         if (enabled.length > 0) {
             const t = enabled[Math.floor(Math.random() * enabled.length)];
-            // Delay firing until all tokens are visually acknowledged
+            this.generateTransitionTokens(t); // Start token animations immediately
             setTimeout(() => {
                 if (this.isSmartModel) {
                     t.fireSmart(this.animations);
@@ -1699,8 +1673,7 @@ class PetriNetCanvas {
                 }
                 this.updateStatus(`Fired transition: ${t.name}`, this.isSmartModel ? "S-Model" : "T-Model");
                 console.log("Simulated step, fired transition:", t.name);
-                this.generateTransitionTokens(t);
-            }, 500); // 500ms delay for visual acknowledgment
+            }, 500); // Delay firing for visual effect after tokens arrive
         }
     }
 
