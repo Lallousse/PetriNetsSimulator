@@ -45,7 +45,7 @@ class PetriNetCanvas {
         this.iconSize = 32;
         this.tokenSize = 8;
         this.stepDelay = 1000;
-        this.animationSpeedBase = 0.005; // Slower for visibility
+        this.animationSpeedBase = 0.001; // Much slower for visibility
 
         this.icons = {};
         this.undoHistory = [];
@@ -172,7 +172,7 @@ class PetriNetCanvas {
                 e.preventDefault();
                 this.saveDesign();
             }
-            if (this.editingElement && e.key === "Escape") {
+            if (this.editingElement && e.key === "Escape" && !document.getElementById("editModal")) {
                 this.finishEditing(false);
                 e.preventDefault();
             }
@@ -217,7 +217,7 @@ class PetriNetCanvas {
         if (this.selected && this.selectedElements.length === 1) {
             this.drawProperties();
         }
-        if (this.editingElement) {
+        if (this.editingElement && !this.isSmartModel) {
             this.drawEditing(this.editingElement);
         }
 
@@ -278,18 +278,12 @@ class PetriNetCanvas {
     }
 
     drawEditing(element) {
-        let input;
-        let value = "";
-        if (element instanceof Annotation) {
-            input = document.createElement("textarea");
-            value = element.text;
-        } else {
+        let input = document.createElement("textarea");
+        let value = element.text || "";
+        if (!(element instanceof Annotation)) {
             input = document.createElement("input");
             input.type = "text";
             if (element instanceof Arc) value = element.weight.toString();
-            else if (element instanceof Place) value = element.name;
-            else if (element instanceof Transition) value = `${element.name},${element.task.task},${element.tokenOrder},${element.passOnTrue},${element.passOnFalse},${element.passPreviousValue}`;
-            else if (element instanceof Initializer) value = `${element.name},${element.tokensToGenerate},${element.tokensPerSecond},${element.isContinuous}${this.isSmartModel ? `,${element.tokenValue}` : ""}`;
             else value = element.name;
         }
         const rect = this.canvas.getBoundingClientRect();
@@ -319,30 +313,11 @@ class PetriNetCanvas {
             const newValue = input.value.trim();
             if (save && newValue) {
                 this.saveStateToUndo();
-                if (element instanceof Place) {
-                    element.name = newValue;
-                } else if (element instanceof Transition) {
-                    const parts = newValue.split(",");
-                    element.name = parts[0];
-                    if (this.isSmartModel) {
-                        element.task = new TransitionTask(parts[1] || "");
-                        element.tokenOrder = parts[2] || "";
-                        element.passOnTrue = parts[3] === "true";
-                        element.passOnFalse = parts[4] === "true";
-                        element.passPreviousValue = parts[5] === "true";
-                    }
-                } else if (element instanceof Initializer) {
-                    const parts = newValue.split(",");
-                    element.name = parts[0];
-                    element.tokensToGenerate = parseInt(parts[1]) || element.tokensToGenerate;
-                    element.tokensPerSecond = parseFloat(parts[2]) || element.tokensPerSecond;
-                    element.isContinuous = parts[3] === "true";
-                    if (this.isSmartModel && parts[4]) element.tokenValue = parseFloat(parts[4]) || element.tokenValue;
-                    element.tokensGenerated = 0;
-                    element.lastGenerationTime = Date.now();
-                } else if (element instanceof Annotation) {
-                    element.text = newValue;
-                } else if (element instanceof Arc && !this.isSmartModel) {
+                if (element instanceof Place) element.name = newValue;
+                else if (element instanceof Transition) element.name = newValue;
+                else if (element instanceof Initializer) element.name = newValue;
+                else if (element instanceof Annotation) element.text = newValue;
+                else if (element instanceof Arc && !this.isSmartModel) {
                     const w = parseInt(newValue);
                     if (w > 0) {
                         element.setWeight(w);
@@ -364,7 +339,7 @@ class PetriNetCanvas {
         input.onkeydown = (e) => {
             if (element instanceof Annotation) {
                 if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault(); // Allow new line
+                    return; // Allow new line
                 } else if (e.key === "Enter" && e.shiftKey) {
                     finish(true);
                     e.preventDefault();
@@ -387,6 +362,91 @@ class PetriNetCanvas {
         };
     }
 
+    showEditModal(element) {
+        const modal = document.createElement("div");
+        modal.className = "modal";
+        modal.id = "editModal";
+        modal.style.display = "block";
+
+        const content = document.createElement("div");
+        content.className = "modal-content";
+
+        const close = document.createElement("span");
+        close.className = "close";
+        close.innerHTML = "×";
+        close.onclick = () => {
+            document.body.removeChild(modal);
+            this.editingElement = null;
+        };
+
+        const form = document.createElement("div");
+        form.style.padding = "20px";
+
+        if (element instanceof Place) {
+            form.innerHTML = `
+                <h3>Edit Place</h3>
+                <label>Name: <input type="text" id="editName" value="${element.name}"></label><br>
+                <label>Tokens: <input type="number" id="editTokens" value="${element.tokens}" min="0"></label><br>
+                <label>Token Value: <input type="number" id="editTokenValue" value="${element.getTokenValue()}"></label><br>
+            `;
+        } else if (element instanceof Transition) {
+            form.innerHTML = `
+                <h3>Edit Transition</h3>
+                <label>Name: <input type="text" id="editName" value="${element.name}"></label><br>
+                <label>Task: <input type="text" id="editTask" value="${element.task.task}"></label><br>
+                <label>Token Order: <input type="text" id="editTokenOrder" value="${element.tokenOrder}"></label><br>
+                <label>Pass on True: <input type="checkbox" id="editPassOnTrue" ${element.passOnTrue ? "checked" : ""}></label><br>
+                <label>Pass on False: <input type="checkbox" id="editPassOnFalse" ${element.passOnFalse ? "checked" : ""}></label><br>
+                <label>Pass Previous Value: <input type="checkbox" id="editPassPreviousValue" ${element.passPreviousValue ? "checked" : ""}></label><br>
+            `;
+        } else if (element instanceof Initializer) {
+            form.innerHTML = `
+                <h3>Edit Initializer</h3>
+                <label>Name: <input type="text" id="editName" value="${element.name}"></label><br>
+                <label>Tokens to Generate: <input type="number" id="editTokensToGenerate" value="${element.tokensToGenerate}" min="0"></label><br>
+                <label>Tokens per Second: <input type="number" id="editTokensPerSecond" value="${element.tokensPerSecond}" step="0.1" min="0"></label><br>
+                <label>Continuous: <input type="checkbox" id="editIsContinuous" ${element.isContinuous ? "checked" : ""}></label><br>
+                <label>Token Value: <input type="number" id="editTokenValue" value="${element.tokenValue}"></label><br>
+            `;
+        }
+
+        const saveBtn = document.createElement("button");
+        saveBtn.textContent = "Save";
+        saveBtn.onclick = () => {
+            this.saveStateToUndo();
+            if (element instanceof Place) {
+                element.name = document.getElementById("editName").value;
+                element.tokens = parseInt(document.getElementById("editTokens").value) || 0;
+                element.setTokenValue(parseFloat(document.getElementById("editTokenValue").value) || 0);
+            } else if (element instanceof Transition) {
+                element.name = document.getElementById("editName").value;
+                element.task = new TransitionTask(document.getElementById("editTask").value);
+                element.tokenOrder = document.getElementById("editTokenOrder").value;
+                element.passOnTrue = document.getElementById("editPassOnTrue").checked;
+                element.passOnFalse = document.getElementById("editPassOnFalse").checked;
+                element.passPreviousValue = document.getElementById("editPassPreviousValue").checked;
+            } else if (element instanceof Initializer) {
+                element.name = document.getElementById("editName").value;
+                element.tokensToGenerate = parseInt(document.getElementById("editTokensToGenerate").value) || 0;
+                element.tokensPerSecond = parseFloat(document.getElementById("editTokensPerSecond").value) || 1.0;
+                element.isContinuous = document.getElementById("editIsContinuous").checked;
+                element.tokenValue = parseFloat(document.getElementById("editTokenValue").value) || 0;
+                element.tokensGenerated = 0;
+                element.lastGenerationTime = Date.now();
+            }
+            this.designState.setUnsavedChanges();
+            document.body.removeChild(modal);
+            this.editingElement = null;
+            this.updateButtonStates();
+        };
+
+        content.appendChild(close);
+        content.appendChild(form);
+        content.appendChild(saveBtn);
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+    }
+
     handleMouseDown(e) {
         const rect = this.canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) / this.zoomLevel;
@@ -404,6 +464,7 @@ class PetriNetCanvas {
             this.draggingCanvas = true;
             this.dragStartX = e.clientX;
             this.dragStartY = e.clientY;
+            this.canvas.style.cursor = "grabbing";
             console.log("Started dragging canvas");
         } else if (this.addMode === "arc" && (elem instanceof Place || elem instanceof Transition || elem instanceof Initializer)) {
             this.arcStart = new Point(x, y);
@@ -478,6 +539,7 @@ class PetriNetCanvas {
 
         if (this.draggingCanvas) {
             this.draggingCanvas = false;
+            this.canvas.style.cursor = this.handMode ? "grab" : "default";
             this.saveStateToUndo();
             console.log("Finished dragging canvas");
         } else if (this.drawingArc && this.arcStart) {
@@ -584,12 +646,16 @@ class PetriNetCanvas {
 
         if (this.addMode === "select" && (elem || arc || annotation)) {
             this.editingElement = elem || arc || annotation;
-            this.renderLoop();
+            if (this.isSmartModel && (elem instanceof Place || elem instanceof Transition || elem instanceof Initializer)) {
+                this.showEditModal(elem);
+            } else {
+                this.renderLoop();
+            }
         }
     }
 
     handleClick(e) {
-        if (!this.editingElement) return;
+        if (!this.editingElement || this.isSmartModel) return;
         const rect = this.canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) / this.zoomLevel;
         const y = (e.clientY - rect.top) / this.zoomLevel;
@@ -603,7 +669,7 @@ class PetriNetCanvas {
     }
 
     finishEditing(save) {
-        // Handled in drawEditing
+        // Handled in drawEditing or showEditModal
     }
 
     newDesign() {
@@ -637,6 +703,7 @@ class PetriNetCanvas {
         document.querySelectorAll(".tool-btn").forEach(btn => btn.classList.remove("highlighted"));
         const btn = document.getElementById(`${mode}Btn`);
         if (btn) btn.classList.add("highlighted");
+        this.canvas.style.cursor = this.handMode ? "grab" : "default";
         console.log(`Mode set to: ${mode}`);
     }
 
@@ -822,7 +889,6 @@ class PetriNetCanvas {
         this.addMode = "select";
         this.handMode = false;
         this.drawingArc = false;
-        // Keep designExists true to maintain file state
         this.designState.setUnsavedChanges();
         this.updateTitle();
         this.updateButtonStates();
