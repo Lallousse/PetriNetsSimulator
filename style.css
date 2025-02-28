@@ -12,7 +12,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px; /* Increased gap */
+    gap: 10px;
     padding: 10px 0;
     z-index: 1000;
 }
@@ -38,7 +38,7 @@ body {
 #speedLabel {
     position: fixed;
     top: 10px;
-    left: 70px; /* Adjusted for left panel */
+    left: 70px;
     font-size: 14px;
     color: #333;
     background: rgba(255, 255, 255, 0.8);
@@ -58,7 +58,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 30px; /* Increased padding */
+    padding: 0 40px; /* Further increased padding */
     border-top: 1px solid #555;
     z-index: 1000;
 }
@@ -70,7 +70,7 @@ body {
 #modelStatus {
     font-size: 12px;
     font-weight: bold;
-    padding-right: 30px; /* Increased padding */
+    padding-right: 40px; /* Further increased padding */
 }
 
 .tool-btn {
@@ -155,11 +155,15 @@ body {
     padding: 10px;
     transform: translateX(100%);
     opacity: 0;
-    transition: transform 0.3s ease, opacity 0.2s ease; /* Adjusted transition */
+    transition: transform 0.3s ease, opacity 0.2s ease;
 }
 
-.dropdown .tool-btn:hover ~ .dropdown-content,
-.dropdown .dropdown-content:hover {
+.dropdown:hover > .dropdown-content {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.dropdown-content:hover {
     transform: translateX(0);
     opacity: 1;
 }
