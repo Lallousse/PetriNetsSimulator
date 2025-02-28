@@ -2048,7 +2048,7 @@ class PetriNetCanvas {
             this.updateStatus(`Annotation font changed to ${font} ${size}px`, this.isSmartModel ? "S-Model" : "T-Model");
             console.log("Annotation font changed to:", font, size);
     }
-
+    }
     updateButtonStates() {
         const hasDesign = this.designExists && 
                          (this.places.length > 0 || this.transitions.length > 0 || 
@@ -2092,7 +2092,6 @@ class PetriNetCanvas {
         e.preventDefault();
         if (e.deltaY < 0) this.zoomIn();
         else this.zoomOut();
-    }
     }
 }
 
