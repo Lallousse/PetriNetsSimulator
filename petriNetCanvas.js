@@ -1261,3 +1261,14 @@ class PetriNetCanvas {
         document.title = `Petri Net Simulator - ${this.designState.currentFileName || "Untitled"}${this.designState.hasUnsavedChanges() ? " (unsaved changes *)" : " (saved)"}`;
     }
 }
+
+// Initialize the canvas after DOM is loaded
+document.addEventListener("DOMContentLoaded", () => {
+    const canvas = new PetriNetCanvas();
+    if (!canvas.canvas) {
+        console.error("Failed to initialize PetriNetCanvas!");
+    } else {
+        console.log("PetriNetCanvas initialized successfully");
+        window.canvas = canvas; // Expose globally for dropdowns and toolbar
+    }
+});
