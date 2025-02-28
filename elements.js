@@ -197,7 +197,7 @@ class Arc {
         this.start = start;
         this.end = end;
         this.isInput = isInput;
-        this.type = "line"; // Fixed to line only
+        this.type = "line";
         this.controlPoints = [];
         this.weight = 1;
     }
@@ -210,7 +210,7 @@ class Arc {
         this.weight = w;
     }
 
-    draw(ctx, iconSize) {
+    draw(ctx, selected, iconSize) {
         const startX = this.start.x;
         const startY = this.start.y;
         const endX = this.end.x;
@@ -222,9 +222,8 @@ class Arc {
         const adjEndX = endX - offset * Math.cos(angle);
         const adjEndY = endY - offset * Math.sin(angle);
 
-        ctx.strokeStyle = this.isInput ? "blue" : (this.start instanceof Initializer ? "magenta" : "red");
-        if (this.end instanceof Transition && this.end.active) ctx.strokeStyle = "green";
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = selected ? "yellow" : this.isInput ? "blue" : (this.start instanceof Initializer ? "magenta" : "red");
+        ctx.lineWidth = selected ? 3 : 2;
 
         ctx.beginPath();
         ctx.moveTo(adjStartX, adjStartY);
@@ -243,7 +242,7 @@ class Arc {
 
         if (!canvas.isSmartModel) {
             const weight = this.getWeight();
-            if (weight > 1 || canvas.selected === this) {
+            if (weight > 1 || selected) {
                 const midX = (adjStartX + adjEndX) / 2;
                 const midY = (adjStartY + adjEndY) / 2;
                 ctx.fillStyle = "black";
