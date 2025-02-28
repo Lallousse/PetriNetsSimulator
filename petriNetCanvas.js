@@ -1744,8 +1744,8 @@ class PetriNetCanvas {
 
         const transition = enabled[Math.floor(Math.random() * enabled.length)];
         transition.active = true;
-        transition.pendingTokens = 0; // Track arriving tokens
-        if (this.isSmartModel) transition.pendingSmartTokens = []; // Clear pending tokens for S-Model
+        transition.pendingTokens = 0;
+        if (this.isSmartModel) transition.pendingSmartTokens = [];
 
         // Generate animations from input places to transition
         transition.inputArcs.forEach(arc => {
@@ -1756,7 +1756,7 @@ class PetriNetCanvas {
                     new TokenAnimation(place.x, place.y, transition.x, transition.y, null, place, new SmartToken(place.getTokenValue())) :
                     new TokenAnimation(place.x, place.y, transition.x, transition.y, null, place);
                 anim.toTransition = true;
-                anim.transition = transition; // Link animation to transition for highlighting
+                anim.transition = transition;
                 this.animations.push(anim);
                 place.removeToken();
                 transition.pendingTokens++;
@@ -1784,8 +1784,8 @@ class PetriNetCanvas {
                 if (anim.toTransition && anim.transition) {
                     anim.transition.pendingTokens--;
                     if (anim.transition.pendingTokens <= 0 && anim.transition.active) {
-                        // All input tokens have arrived, fire the transition
                         if (this.isSmartModel ? anim.transition.isEnabledSmart() : anim.transition.isEnabled()) {
+                            const delay = this.isSmartModel ? anim.transition.task.getPauseDuration() : 500;
                             setTimeout(() => {
                                 if (this.isSmartModel) {
                                     anim.transition.fireSmart(this.animations);
@@ -1794,7 +1794,7 @@ class PetriNetCanvas {
                                 }
                                 this.updateStatus(`Fired transition: ${anim.transition.name}`, this.isSmartModel ? "S-Model" : "T-Model");
                                 console.log(`Fired transition: ${anim.transition.name}`);
-                            }, 500); // Delay to visualize tokens at transition
+                            }, delay || 500); // Use task delay or default 500ms
                         }
                         anim.transition.active = false;
                     }

@@ -111,8 +111,8 @@ class Transition {
         this.inputArcs = [];
         this.outputArcs = [];
         this.active = false;
-        this.pendingTokens = 0; // Track arriving tokens
-        this.pendingSmartTokens = []; // For S-Model
+        this.pendingTokens = 0;
+        this.pendingSmartTokens = [];
         this.task = new TransitionTask("");
         this.tokenOrder = "";
         this.passOnTrue = true;
@@ -133,7 +133,7 @@ class Transition {
             this.outputArcs.forEach(a => {
                 for (let i = 0; i < a.weight; i++) {
                     const anim = new TokenAnimation(this.x, this.y, a.place.x, a.place.y, a.place);
-                    anim.transition = this; // For highlighting
+                    anim.transition = this;
                     animations.push(anim);
                 }
             });
@@ -142,13 +142,24 @@ class Transition {
 
     fireSmart(animations) {
         if (this.isEnabledSmart() && !this.active) {
-            const orderedTokens = this.tokenOrder ? 
-                this.tokenOrder.split(",").map(name => {
-                    const place = this.inputArcs.find(a => a.place.name === name.trim())?.place;
-                    return place && this.pendingSmartTokens.length > 0 ? this.pendingSmartTokens.shift() : null;
-                }).filter(t => t) : 
-                [...this.pendingSmartTokens];
-            
+            const orderedTokens = [];
+            if (this.tokenOrder && this.pendingSmartTokens.length > 0) {
+                const order = this.tokenOrder.split(",").map(name => name.trim());
+                const tokenMap = new Map();
+                this.inputArcs.forEach(arc => tokenMap.set(arc.place.name, []));
+                this.pendingSmartTokens.forEach(token => {
+                    const place = this.inputArcs.find(a => a.place.tokens > 0 || this.pendingSmartTokens.length > 0)?.place;
+                    if (place) tokenMap.get(place.name).push(token);
+                });
+                order.forEach(name => {
+                    const tokens = tokenMap.get(name);
+                    if (tokens && tokens.length > 0) orderedTokens.push(tokens.shift());
+                });
+                tokenMap.forEach((tokens, name) => orderedTokens.push(...tokens));
+            } else {
+                orderedTokens.push(...this.pendingSmartTokens);
+            }
+
             const result = this.task.execute(orderedTokens);
             const previousValue = orderedTokens.length > 0 ? orderedTokens[0].value : 0;
 
@@ -160,7 +171,7 @@ class Transition {
                         (this.passPreviousValue ? new SmartToken(previousValue) : result);
                     if (outputToken) {
                         const anim = new TokenAnimation(this.x, this.y, a.place.x, a.place.y, a.place, null, outputToken);
-                        anim.transition = this; // For highlighting
+                        anim.transition = this;
                         animations.push(anim);
                     }
                 });
@@ -176,8 +187,8 @@ class Transition {
             return;
         }
         if (highlighted) {
-            ctx.fillStyle = "rgba(144, 238, 144, 0.5)"; // Light green with transparency
-            ctx.fillRect(this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
+            ctx.fillStyle = "#90EE90"; // Solid light green
+            ctx.fillRect(this.x - iconSize / 2 + 2, this.y - iconSize / 2 + 2, iconSize - 4, iconSize - 4); // Inner area only
         }
         ctx.drawImage(img, this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
         if (selected) {
@@ -197,7 +208,7 @@ class Arc {
         this.type = "line";
         this.controlPoints = [];
         this.weight = 1;
-        this.highlighted = false; // For path highlighting
+        this.highlighted = false;
     }
 
     getWeight() {
@@ -220,9 +231,17 @@ class Arc {
         const adjEndX = endX - offset * Math.cos(angle);
         const adjEndY = endY - offset * Math.sin(angle);
 
+        if (this.highlighted) {
+            ctx.strokeStyle = "#90EE90"; // Solid light green
+            ctx.lineWidth = 3; // Slightly thicker for visibility
+            ctx.beginPath();
+            ctx.moveTo(adjStartX, adjStartY);
+            ctx.lineTo(adjEndX, adjEndY);
+            ctx.stroke();
+        }
+
         ctx.strokeStyle = selected ? "yellow" : this.isInput ? "blue" : (this.start instanceof Initializer ? "magenta" : "red");
         ctx.lineWidth = selected ? 3 : 2;
-
         ctx.beginPath();
         ctx.moveTo(adjStartX, adjStartY);
         ctx.lineTo(adjEndX, adjEndY);
@@ -298,11 +317,16 @@ class SmartToken {
 
 class TransitionTask {
     constructor(task) {
-        this.task = task || "";
+        this.task = task && task.trim() ? task.trim() : "gate";
     }
 
     execute(inputTokens) {
-        if (!this.task || inputTokens.length === 0) return null;
+        if (this.task === "gate") {
+            return inputTokens.length > 0 ? new SmartToken(inputTokens[0].value) : null;
+        }
+
+        if (inputTokens.length === 0) return null;
+
         switch (this.task) {
             case "+":
                 return new SmartToken(inputTokens.reduce((sum, t) => sum + t.value, 0));
@@ -315,7 +339,7 @@ class TransitionTask {
                 if (inputTokens.length < 2 || inputTokens[1].value === 0) return null;
                 return new SmartToken(inputTokens[0].value / inputTokens[1].value);
             case "cp":
-                return inputTokens.length > 0 ? new SmartToken(inputTokens[0].value) : null;
+                return inputTokens[0] ? new SmartToken(inputTokens[0].value) : null;
             default:
                 if (this.task.startsWith("!=")) {
                     const compareValue = parseFloat(this.task.substring(2).trim());
@@ -324,7 +348,7 @@ class TransitionTask {
                     const compareValue = parseFloat(this.task.substring(2).trim());
                     return new SmartToken(inputTokens[0].value === compareValue ? 1 : 0);
                 } else if (this.task.startsWith("p ")) {
-                    return new SmartToken(inputTokens[0].value);
+                    return inputTokens[0] ? new SmartToken(inputTokens[0].value) : null;
                 }
                 return null;
         }
@@ -332,7 +356,7 @@ class TransitionTask {
 
     getPauseDuration() {
         if (this.task.startsWith("p ")) {
-            return parseFloat(this.task.substring(2).trim()) * 1000;
+            return parseFloat(this.task.substring(2).trim()) * 1000; // Convert seconds to milliseconds
         }
         return 0;
     }
