@@ -262,51 +262,6 @@ class PetriNet {
         this.inputFunction = new Map();
         this.outputFunction = new Map();
         this.initialMarking = new Map();
-        this.canvas = document.getElementById("petriCanvas");
-        if (!this.canvas) {
-            console.error("Canvas element not found!");
-            return;
-        }
-        this.ctx = this.canvas.getContext("2d");
-        this.places = [];
-        this.transitions = [];
-        this.arcs = [];
-        this.initializers = [];
-        this.annotations = [];
-        this.animations = [];
-        this.selectedElements = [];
-        this.selected = null;
-        this.addMode = "select";
-        this.drawingArc = false;
-        this.arcStart = null;
-        this.arcEnd = null;
-        this.selectionArea = null;
-        this.selectionStart = null;
-        this.autoRun = false;
-        this.lastStep = 0;
-        this.animationSpeed = 1.0;
-        this.speedOptions = [0.5, 1.0, 1.5, 2.0];
-        this.currentSpeedIndex = 1;
-        this.snappingEnabled = false;
-        this.zoomLevel = 1.0;
-        this.isSmartModel = false;
-        this.designState = new DesignState(this);
-
-        this.iconSize = 32;
-        this.tokenSize = 8;
-        this.stepDelay = 500;
-        this.animationSpeedBase = 0.05;
-        this.snapGridSize = 25;
-
-        this.icons = {};
-        this.undoHistory = [];
-        this.redoHistory = [];
-        this.maxHistorySize = 10;
-
-        this.resize();
-        this.loadIcons();
-        this.initEventListeners();
-        this.renderLoop();
     }
 
     addPlace(p) {
@@ -378,6 +333,10 @@ class PetriNetCanvas {
             return;
         }
         this.ctx = this.canvas.getContext("2d");
+        if (!this.ctx) {
+            console.error("Failed to get 2D context!");
+            return;
+        }
         this.places = [];
         this.transitions = [];
         this.arcs = [];
@@ -416,17 +375,18 @@ class PetriNetCanvas {
         this.resize();
         this.loadIcons();
         this.initEventListeners();
-        this.updateButtonStates(); // Initial button state update
+        this.updateButtonStates();
         this.renderLoop();
     }
 
     resize() {
         const dpr = window.devicePixelRatio || 1;
         this.canvas.width = (window.innerWidth - 50) * dpr;
-        this.canvas.height = (window.innerHeight - 60) * dpr;
+        this.canvas.height = (window.innerHeight - 80) * dpr;
         this.canvas.style.width = `${window.innerWidth - 50}px`;
-        this.canvas.style.height = `${window.innerHeight - 60}px`;
+        this.canvas.style.height = `${window.innerHeight - 80}px`;
         this.ctx.scale(dpr, dpr);
+        console.log("Canvas resized to:", this.canvas.width, this.canvas.height);
     }
 
     loadIcons() {
@@ -438,7 +398,10 @@ class PetriNetCanvas {
         iconNames.forEach(name => {
             this.icons[name] = new Image();
             this.icons[name].src = `assets/${name}.png`;
-            this.icons[name].onload = () => console.log(`Loaded icon: ${name}`);
+            this.icons[name].onload = () => {
+                console.log(`Loaded icon: ${name}`);
+                this.renderLoop(); // Trigger redraw after icons load
+            };
             this.icons[name].onerror = () => console.error(`Failed to load icon: ${name}`);
         });
     }
@@ -496,6 +459,14 @@ class PetriNetCanvas {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.save();
         this.ctx.scale(this.zoomLevel, this.zoomLevel);
+
+        console.log("Rendering:", {
+            places: this.places.length,
+            transitions: this.transitions.length,
+            arcs: this.arcs.length,
+            initializers: this.initializers.length,
+            annotations: this.annotations.length
+        });
 
         this.arcs.forEach(arc => arc.draw(this.ctx, this.iconSize));
         if (this.drawingArc && this.arcStart && this.arcEnd) {
@@ -574,7 +545,7 @@ class PetriNetCanvas {
         const x = (e.clientX - rect.left) / this.zoomLevel;
         const y = (e.clientY - rect.top) / this.zoomLevel;
 
-        console.log(`Mouse down at (${x}, ${y}) with mode: ${this.addMode}`); // Debug log
+        console.log(`Mouse down at (${x}, ${y}) with mode: ${this.addMode}`);
 
         if (y < 0) return;
 
@@ -659,18 +630,24 @@ class PetriNetCanvas {
                 this.arcs.push(arc);
                 elem.inputArcs.push({ place: start, weight: 1 });
                 this.designState.setUnsavedChanges();
+                this.updateButtonStates();
+                console.log("Added input arc");
             } else if (start instanceof Transition && elem instanceof Place) {
                 this.saveStateToUndo();
                 const arc = new Arc(start, elem, false);
                 this.arcs.push(arc);
                 start.outputArcs.push({ place: elem, weight: 1 });
                 this.designState.setUnsavedChanges();
+                this.updateButtonStates();
+                console.log("Added output arc");
             } else if (start instanceof Initializer && elem instanceof Place) {
                 this.saveStateToUndo();
                 const arc = new Arc(start, elem, false);
                 this.arcs.push(arc);
                 start.outputPlace = elem;
                 this.designState.setUnsavedChanges();
+                this.updateButtonStates();
+                console.log("Added initializer arc");
             }
             this.arcStart = null;
             this.arcEnd = null;
@@ -840,7 +817,7 @@ class PetriNetCanvas {
         this.updateTitle();
         this.updateButtonStates();
         console.log("New design created");
-        alert("New design created"); // Visual feedback
+        alert("New design created");
     }
 
     setMode(mode) {
@@ -848,6 +825,7 @@ class PetriNetCanvas {
         this.drawingArc = mode === "arc";
         document.querySelectorAll("#toolbar button").forEach(btn => btn.classList.remove("highlighted"));
         document.getElementById(`${mode}Btn`).classList.add("highlighted");
+        console.log(`Mode set to: ${mode}`);
     }
 
     deleteSelected() {
@@ -877,6 +855,8 @@ class PetriNetCanvas {
             this.selectedElements = [];
             this.selected = null;
             this.designState.setUnsavedChanges();
+            this.updateButtonStates();
+            console.log("Selected elements deleted");
         }
     }
 
@@ -887,6 +867,8 @@ class PetriNetCanvas {
                 if (elem instanceof Place) elem.addToken();
             });
             this.designState.setUnsavedChanges();
+            this.updateButtonStates();
+            console.log("Added tokens to selected places");
         }
     }
 
@@ -897,6 +879,8 @@ class PetriNetCanvas {
                 if (elem instanceof Place) elem.removeToken();
             });
             this.designState.setUnsavedChanges();
+            this.updateButtonStates();
+            console.log("Removed tokens from selected places");
         }
     }
 
@@ -906,6 +890,7 @@ class PetriNetCanvas {
         document.getElementById("playPauseBtn").innerHTML = this.autoRun ?
             `<img src="assets/pause.png" alt="Pause">` :
             `<img src="assets/play.png" alt="Play">`;
+        console.log("Play/Pause toggled to:", this.autoRun);
     }
 
     resetTokens() {
@@ -920,17 +905,21 @@ class PetriNetCanvas {
         this.animations = [];
         this.autoRun = false;
         this.designState.setUnsavedChanges();
+        this.updateButtonStates();
+        console.log("Tokens reset");
     }
 
     toggleSnap() {
         this.snappingEnabled = !this.snappingEnabled;
         document.getElementById("snapBtn").classList.toggle("active", this.snappingEnabled);
+        console.log("Snapping toggled to:", this.snappingEnabled);
     }
 
     cycleSpeed() {
         this.currentSpeedIndex = (this.currentSpeedIndex + 1) % this.speedOptions.length;
         this.animationSpeed = this.speedOptions[this.currentSpeedIndex];
         document.getElementById("speedLabel").textContent = `Speed: ${this.getSpeedLabel()}`;
+        console.log("Speed cycled to:", this.animationSpeed);
     }
 
     getSpeedLabel() {
@@ -948,6 +937,7 @@ class PetriNetCanvas {
         URL.revokeObjectURL(url);
         this.designState.saveDesign();
         this.updateTitle();
+        console.log("Design saved");
     }
 
     loadDesign() {
@@ -978,22 +968,7 @@ class PetriNetCanvas {
         };
         input.click();
     }
-    updateButtonStates() {
-        const hasDesign = this.designState.hasDesign() && 
-                         (this.places.length > 0 || this.transitions.length > 0 || 
-                          this.arcs.length > 0 || this.initializers.length > 0 || 
-                          this.annotations.length > 0);
-        document.getElementById("deleteBtn").disabled = !hasDesign;
-        document.getElementById("plusTokenBtn").disabled = !hasDesign;
-        document.getElementById("minusTokenBtn").disabled = !hasDesign;
-        document.getElementById("playPauseBtn").disabled = !hasDesign;
-        document.getElementById("resetBtn").disabled = !hasDesign;
-        document.getElementById("saveBtn").disabled = !hasDesign;
-        document.getElementById("clearBtn").disabled = !hasDesign;
-        document.getElementById("pnfnBtn").disabled = !hasDesign;
-        document.getElementById("mrpnBtn").disabled = !hasDesign;
-        console.log("Updated button states. Has design:", hasDesign);
-    }
+
     clearCanvas() {
         if (!this.designState.hasDesign()) {
             alert("No design exists to clear.");
@@ -1012,6 +987,8 @@ class PetriNetCanvas {
         this.addMode = "select";
         this.drawingArc = false;
         this.designState.setUnsavedChanges();
+        this.updateButtonStates();
+        console.log("Canvas cleared");
     }
 
     toggleModel() {
@@ -1019,6 +996,7 @@ class PetriNetCanvas {
         document.getElementById("switchBtn").innerHTML = this.isSmartModel ?
             `<img src="assets/switch.png" alt="Switch">` :
             `<img src="assets/switch.png" alt="Switch">`;
+        console.log("Model toggled to:", this.isSmartModel ? "S-Model" : "T-Model");
     }
 
     showGuide() {
@@ -1041,6 +1019,7 @@ class PetriNetCanvas {
         `;
         modal.style.display = "block";
         document.querySelectorAll(".close").forEach(close => close.onclick = () => modal.style.display = "none");
+        console.log("Guide modal opened");
     }
 
     showPNFN() {
@@ -1055,6 +1034,7 @@ class PetriNetCanvas {
         pnfnText.value = text;
         modal.style.display = "block";
         document.querySelectorAll(".close").forEach(close => close.onclick = () => modal.style.display = "none");
+        console.log("PN-FN modal opened");
     }
 
     showMRPN() {
@@ -1100,6 +1080,7 @@ class PetriNetCanvas {
         mrpnText.value = text;
         modal.style.display = "block";
         document.querySelectorAll(".close").forEach(close => close.onclick = () => modal.style.display = "none");
+        console.log("MR-PN modal opened");
     }
 
     insertPNFNAsNote() {
@@ -1110,6 +1091,8 @@ class PetriNetCanvas {
         this.annotations.push(new Annotation(pnfnText, x, y, "Times New Roman", 12));
         document.getElementById("pnfnModal").style.display = "none";
         this.designState.setUnsavedChanges();
+        this.updateButtonStates();
+        console.log("Inserted PN-FN as note");
     }
 
     insertMRPNAsNote() {
@@ -1120,6 +1103,8 @@ class PetriNetCanvas {
         this.annotations.push(new Annotation(mrpnText, x, y, "Times New Roman", 12));
         document.getElementById("mrpnModal").style.display = "none";
         this.designState.setUnsavedChanges();
+        this.updateButtonStates();
+        console.log("Inserted MR-PN as note");
     }
 
     findAnnotationPosition(text) {
@@ -1167,11 +1152,13 @@ class PetriNetCanvas {
     zoomIn() {
         this.zoomLevel += 0.1;
         if (this.zoomLevel > 2.0) this.zoomLevel = 2.0;
+        console.log("Zoomed in to:", this.zoomLevel);
     }
 
     zoomOut() {
         this.zoomLevel -= 0.1;
         if (this.zoomLevel < 0.5) this.zoomLevel = 0.5;
+        console.log("Zoomed out to:", this.zoomLevel);
     }
 
     simulateStep() {
@@ -1180,6 +1167,7 @@ class PetriNetCanvas {
             const t = enabled[Math.floor(Math.random() * enabled.length)];
             if (this.isSmartModel) t.fireSmart(this.animations);
             else t.fire(this.animations);
+            console.log("Simulated step, fired transition:", t.name);
         }
     }
 
@@ -1204,7 +1192,7 @@ class PetriNetCanvas {
         });
     }
 
-        generateTokensFromInitializers() {
+    generateTokensFromInitializers() {
         if (!this.autoRun) return;
         const now = Date.now();
         this.initializers.forEach(ini => {
@@ -1220,6 +1208,7 @@ class PetriNetCanvas {
                         ini.tokensGenerated++;
                         ini.lastGenerationTime = now;
                         ini.isGenerating = true;
+                        console.log(`Generated token from initializer ${ini.name}`);
                     } else {
                         ini.isGenerating = false;
                     }
@@ -1306,6 +1295,7 @@ class PetriNetCanvas {
         });
         if (this.selectedElements.length === 1) this.selected = this.selectedElements[0];
         else this.selected = null;
+        console.log("Selected elements:", this.selectedElements.length);
     }
 
     intersectsRectLine(rect, line) {
@@ -1357,6 +1347,7 @@ class PetriNetCanvas {
             currentFileName: this.designState.currentFileName
         });
         this.redoHistory = [];
+        console.log("State saved to undo history");
     }
 
     undo() {
@@ -1364,6 +1355,8 @@ class PetriNetCanvas {
             this.redoHistory.push(this.getCurrentState());
             this.restoreState(this.undoHistory.pop());
             this.updateTitle();
+            this.updateButtonStates();
+            console.log("Undo performed");
         }
     }
 
@@ -1372,6 +1365,8 @@ class PetriNetCanvas {
             this.undoHistory.push(this.getCurrentState());
             this.restoreState(this.redoHistory.pop());
             this.updateTitle();
+            this.updateButtonStates();
+            console.log("Redo performed");
         }
     }
 
@@ -1454,6 +1449,7 @@ class PetriNetCanvas {
         this.selectionArea = state.selectionArea ? { ...state.selectionArea } : null;
         this.selectionStart = state.selectionStart ? new Point(state.selectionStart.x, state.selectionStart.y) : null;
         this.designState.currentFileName = state.currentFileName;
+        console.log("State restored");
     }
 
     changeAnnotationColor() {
@@ -1465,6 +1461,8 @@ class PetriNetCanvas {
                     if (elem instanceof Annotation) elem.color = color;
                 });
                 this.designState.setUnsavedChanges();
+                this.updateButtonStates();
+                console.log("Annotation color changed");
             }
         }
     }
@@ -1486,7 +1484,26 @@ class PetriNetCanvas {
                 }
             });
             this.designState.setUnsavedChanges();
+            this.updateButtonStates();
+            console.log("Annotation font changed");
         }
+    }
+
+    updateButtonStates() {
+        const hasDesign = this.designState.hasDesign() && 
+                         (this.places.length > 0 || this.transitions.length > 0 || 
+                          this.arcs.length > 0 || this.initializers.length > 0 || 
+                          this.annotations.length > 0);
+        document.getElementById("deleteBtn").disabled = !hasDesign;
+        document.getElementById("plusTokenBtn").disabled = !hasDesign;
+        document.getElementById("minusTokenBtn").disabled = !hasDesign;
+        document.getElementById("playPauseBtn").disabled = !hasDesign;
+        document.getElementById("resetBtn").disabled = !hasDesign;
+        document.getElementById("saveBtn").disabled = !hasDesign;
+        document.getElementById("clearBtn").disabled = !hasDesign;
+        document.getElementById("pnfnBtn").disabled = !hasDesign;
+        document.getElementById("mrpnBtn").disabled = !hasDesign;
+        console.log("Updated button states. Has design:", hasDesign);
     }
 
     updateTitle() {
@@ -1502,5 +1519,6 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("Failed to initialize PetriNetCanvas!");
     } else {
         console.log("PetriNetCanvas initialized successfully");
+        window.canvas = canvas; // Expose for debugging
     }
 });
