@@ -12,7 +12,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 10px; /* Increased gap */
     padding: 10px 0;
     z-index: 1000;
 }
@@ -23,16 +23,6 @@ body {
 
 #right-panel {
     right: 0;
-}
-
-#zoom-tools {
-    position: fixed;
-    top: calc(50% - 48px);
-    left: 60px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    z-index: 900;
 }
 
 #petriCanvas {
@@ -48,7 +38,7 @@ body {
 #speedLabel {
     position: fixed;
     top: 10px;
-    left: 120px;
+    left: 70px; /* Adjusted for left panel */
     font-size: 14px;
     color: #333;
     background: rgba(255, 255, 255, 0.8);
@@ -68,7 +58,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 20px;
+    padding: 0 30px; /* Increased padding */
     border-top: 1px solid #555;
     z-index: 1000;
 }
@@ -80,7 +70,7 @@ body {
 #modelStatus {
     font-size: 12px;
     font-weight: bold;
-    padding-right: 20px; /* Increased padding */
+    padding-right: 30px; /* Increased padding */
 }
 
 .tool-btn {
@@ -119,8 +109,7 @@ body {
     background-color: #add8e6;
 }
 
-#left-panel .tool-btn[title]:hover:after,
-#zoom-tools .tool-btn[title]:hover:after {
+#left-panel .tool-btn[title]:hover:after {
     content: attr(title);
     position: absolute;
     left: 45px;
@@ -166,10 +155,11 @@ body {
     padding: 10px;
     transform: translateX(100%);
     opacity: 0;
-    transition: transform 0.3s ease, opacity 0.3s ease;
+    transition: transform 0.3s ease, opacity 0.2s ease; /* Adjusted transition */
 }
 
-.dropdown:hover .dropdown-content {
+.dropdown .tool-btn:hover ~ .dropdown-content,
+.dropdown .dropdown-content:hover {
     transform: translateX(0);
     opacity: 1;
 }
