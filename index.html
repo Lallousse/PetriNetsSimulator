@@ -8,68 +8,190 @@
 </head>
 <body>
     <header id="toolbar">
-        <button id="newBtn" title="New"><img src="assets/new.png" alt="New"></button>
-        <button id="selectBtn" title="Select"><img src="assets/select.png" alt="Select"></button>
-        <button id="placeBtn" title="Place"><img src="assets/place.png" alt="Place"></button>
-        <button id="transitionBtn" title="Transition"><img src="assets/transition.png" alt="Transition"></button>
-        <button id="iniBtn" title="Initializer"><img src="assets/ini.png" alt="Initializer"></button>
-        <div class="dropdown">
-            <button id="arcBtn" title="Arc"><img src="assets/arc.png" alt="Arc"></button>
-            <div class="dropdown-content">
-                <button onclick="window.canvas.setArcType('line')">Line</button>
-                <button onclick="window.canvas.setArcType('flexible')">Flexible Arc</button>
-                <button onclick="window.canvas.setArcType('90degree')">90-Degree Line</button>
+        <div id="burgerMenu" class="burger-menu">☰</div>
+        <div id="toolbarButtons">
+            <button id="newBtn" title="New"><img src="assets/new.png" alt="New"></button>
+            <button id="selectBtn" title="Select"><img src="assets/select.png" alt="Select"></button>
+            <button id="placeBtn" title="Place"><img src="assets/place.png" alt="Place"></button>
+            <button id="transitionBtn" title="Transition"><img src="assets/transition.png" alt="Transition"></button>
+            <button id="iniBtn" title="Initializer"><img src="assets/ini.png" alt="Initializer"></button>
+            <div class="dropdown">
+                <button id="arcBtn" title="Arc"><img src="assets/arc.png" alt="Arc"></button>
+                <div class="dropdown-content">
+                    <button onclick="window.canvas.setArcType('line')">Line</button>
+                    <button onclick="window.canvas.setArcType('flexible')">Flexible Arc</button>
+                    <button onclick="window.canvas.setArcType('90degree')">90-Degree Line</button>
+                </div>
+            </div>
+            <button id="deleteBtn" title="Delete"><img src="assets/delete.png" alt="Delete"></button>
+            <button id="plusTokenBtn" title="+Token"><img src="assets/plus.png" alt="+Token"></button>
+            <button id="minusTokenBtn" title="-Token"><img src="assets/minus.png" alt="-Token"></button>
+            <button id="playPauseBtn" title="Play/Pause"><img src="assets/play.png" alt="Play/Pause"></button>
+            <button id="resetBtn" title="Reset"><img src="assets/reset.png" alt="Reset"></button>
+            <button id="snapBtn" title="Snap"><img src="assets/snap.png" alt="Snap"></button>
+            <button id="speedBtn" title="Speed"><img src="assets/speed.png" alt="Speed"></button>
+            <button id="saveBtn" title="Save"><img src="assets/save.png" alt="Save"></button>
+            <button id="loadBtn" title="Load"><img src="assets/load.png" alt="Load"></button>
+            <button id="clearBtn" title="Clear"><img src="assets/clear.png" alt="Clear"></button>
+            <button id="switchBtn" title="Switch Model"><img src="assets/switch.png" alt="Switch"></button>
+            <button id="guideBtn" title="Guide"><img src="assets/guide.png" alt="Guide"></button>
+            <button id="annotateBtn" title="Annotate"><img src="assets/note.png" alt="Annotate"></button>
+            <div class="dropdown">
+                <button id="colorBtn" title="Color"><img src="assets/color.png" alt="Color"></button>
+                <div class="dropdown-content color-palette">
+                    <div class="color-option" style="background-color: black;" onclick="window.canvas.changeAnnotationColor('black')"></div>
+                    <div class="color-option" style="background-color: red;" onclick="window.canvas.changeAnnotationColor('red')"></div>
+                    <div class="color-option" style="background-color: blue;" onclick="window.canvas.changeAnnotationColor('blue')"></div>
+                    <div class="color-option" style="background-color: green;" onclick="window.canvas.changeAnnotationColor('green')"></div>
+                    <div class="color-option" style="background-color: #FF00FF;" onclick="window.canvas.changeAnnotationColor('#FF00FF')"></div>
+                    <div class="color-option" style="background-color: yellow;" onclick="window.canvas.changeAnnotationColor('yellow')"></div>
+                    <div class="color-option" style="background-color: orange;" onclick="window.canvas.changeAnnotationColor('orange')"></div>
+                    <div class="color-option" style="background-color: purple;" onclick="window.canvas.changeAnnotationColor('purple')"></div>
+                </div>
+            </div>
+            <div class="dropdown">
+                <button id="fontBtn" title="Font"><img src="assets/font.png" alt="Font"></button>
+                <div class="dropdown-content font-picker">
+                    <select id="fontFamilySelect" onchange="window.canvas.changeAnnotationFont(this.value, parseInt(document.getElementById('fontSizeSelect').value))">
+                        <option value="Arial">Arial</option>
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Courier New">Courier New</option>
+                        <option value="Verdana">Verdana</option>
+                        <option value="Helvetica">Helvetica</option>
+                    </select>
+                    <select id="fontSizeSelect" onchange="window.canvas.changeAnnotationFont(document.getElementById('fontFamilySelect').value, parseInt(this.value))">
+                        <option value="8">8</option>
+                        <option value="10">10</option>
+                        <option value="12" selected>12</option>
+                        <option value="14">14</option>
+                        <option value="16">16</option>
+                        <option value="18">18</option>
+                        <option value="20">20</option>
+                    </select>
+                </div>
+            </div>
+            <button id="pnfnBtn" title="PN-FN"><img src="assets/pnfn.png" alt="PN-FN"></button>
+            <button id="mrpnBtn" title="MR-PN"><img src="assets/mrpn.png" alt="MR-PN"></button>
+        </div>
+    </header>
+    <div id="zoom-panel">
+        <button id="zoomInBtn" title="Zoom In"><img src="assets/zin.png" alt="Zoom In"></button>
+        <button id="zoomOutBtn" title="Zoom Out"><img src="assets/zout.png" alt="Zoom Out"></button>
+    </div>
+    <canvas id="petriCanvas"></canvas>
+    <div id="speedLabel">Speed: 1x</div>
+    <div id="statusBar">
+        <span id="statusText">Ready</span>
+        <span id="modelStatus">T-Model</span>
+    </div>
+    <div id="guideModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <p id="guideText"></p>
+        </div>
+    </div>
+    <div id="pnfnModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <textarea id="pnfnText" readonly style="width: 100%; height: 300px;"></textarea>
+            <div class="modal-buttons">
+                <button id="pnfnInsertBtn">Insert as Note</button>
+                <button id="pnfnRegenerateAllBtn">Regenerate All</button>
+                <button id="pnfnRegenerateM0Btn">Regenerate M0</button>
             </div>
         </div>
-        <button id="deleteBtn" title="Delete"><img src="assets/delete.png" alt="Delete"></button>
-        <button id="plusTokenBtn" title="+Token"><img src="assets/plus.png" alt="+Token"></button>
-        <button id="minusTokenBtn" title="-Token"><img src="assets/minus.png" alt="-Token"></button>
-        <button id="playPauseBtn" title="Play/Pause"><img src="assets/play.png" alt="Play/Pause"></button>
-        <button id="resetBtn" title="Reset"><img src="assets/reset.png" alt="Reset"></button>
-        <button id="snapBtn" title="Snap"><img src="assets/snap.png" alt="Snap"></button>
-        <button id="speedBtn" title="Speed"><img src="assets/speed.png" alt="Speed"></button>
-        <button id="saveBtn" title="Save"><img src="assets/save.png" alt="Save"></button>
-        <button id="loadBtn" title="Load"><img src="assets/load.png" alt="Load"></button>
-        <button id="clearBtn" title="Clear"><img src="assets/clear.png" alt="Clear"></button>
-        <button id="switchBtn" title="Switch Model"><img src="assets/switch.png" alt="Switch"></button>
-        <button id="guideBtn" title="Guide"><img src="assets/guide.png" alt="Guide"></button>
-        <button id="annotateBtn" title="Annotate"><img src="assets/note.png" alt="Annotate"></button>
-        <div class="dropdown">
-            <button id="colorBtn" title="Color"><img src="assets/color.png" alt="Color"></button>
-            <div class="dropdown-content color-palette">
-                <div class="color-option" style="background-color: black;" onclick="window.canvas.changeAnnotationColor('black')"></div>
-                <div class="color-option" style="background-color: red;" onclick="window.canvas.changeAnnotationColor('red')"></div>
-                <div class="color-option" style="background-color: blue;" onclick="window.canvas.changeAnnotationColor('blue')"></div>
-                <div class="color-option" style="background-color: green;" onclick="window.canvas.changeAnnotationColor('green')"></div>
-                <div class="color-option" style="background-color: #FF00FF;" onclick="window.canvas.changeAnnotationColor('#FF00FF')"></div>
-                <div class="color-option" style="background-color: yellow;" onclick="window.canvas.changeAnnotationColor('yellow')"></div>
-                <div class="color-option" style="background-color: orange;" onclick="window.canvas.changeAnnotationColor('orange')"></div>
-                <div class="color-option" style="background-color: purple;" onclick="window.canvas.changeAnnotationColor('purple')"></div>
+    </div>
+    <div id="mrpnModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <div id="mrpnTableContainer"></div>
+            <div class="modal-buttons">
+                <button id="mrpnInsertBtn">Insert as Note</button>
+                <button id="mrpnRegenerateAllBtn">Regenerate All</button>
+                <button id="mrpnRegenerateM0Btn">Regenerate M0</button>
             </div>
         </div>
-        <div class="dropdown">
-            <button id="fontBtn" title="Font"><img src="assets/font.png" alt="Font"></button>
-            <div class="dropdown-content font-picker">
-                <select id="fontFamilySelect" onchange="window.canvas.changeAnnotationFont(this.value, parseInt(document.getElementById('fontSizeSelect').value))">
-                    <option value="Arial">Arial</option>
-                    <option value="Times New Roman">Times New Roman</option>
-                    <option value="Courier New">Courier New</option>
-                    <option value="Verdana">Verdana</option>
-                    <option value="Helvetica">Helvetica</option>
-                </select>
-                <select id="fontSizeSelect" onchange="window.canvas.changeAnnotationFont(document.getElementById('fontFamilySelect').value, parseInt(this.value))">
-                    <option value="8">8</option>
-                    <option value="10">10</option>
-                    <option value="12" selected>12</option>
-                    <option value="14">14</option>
-                    <option value="16">16</option>
-                    <option value="18">18</option>
-                    <option value="20">20</option>
-                </select>
+    </div>
+    <script src="utils.js"></script>
+    <script src="elements.js"></script>
+    <script src="core.js"></script>
+    <script src="petriNetCanvas.js"></script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Petri Net Simulator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header id="toolbar">
+        <div id="burgerMenu" class="burger-menu">☰</div>
+        <div id="toolbarButtons">
+            <button id="newBtn" title="New"><img src="assets/new.png" alt="New"></button>
+            <button id="selectBtn" title="Select"><img src="assets/select.png" alt="Select"></button>
+            <button id="placeBtn" title="Place"><img src="assets/place.png" alt="Place"></button>
+            <button id="transitionBtn" title="Transition"><img src="assets/transition.png" alt="Transition"></button>
+            <button id="iniBtn" title="Initializer"><img src="assets/ini.png" alt="Initializer"></button>
+            <div class="dropdown">
+                <button id="arcBtn" title="Arc"><img src="assets/arc.png" alt="Arc"></button>
+                <div class="dropdown-content">
+                    <button onclick="window.canvas.setArcType('line')">Line</button>
+                    <button onclick="window.canvas.setArcType('flexible')">Flexible Arc</button>
+                    <button onclick="window.canvas.setArcType('90degree')">90-Degree Line</button>
+                </div>
             </div>
+            <button id="deleteBtn" title="Delete"><img src="assets/delete.png" alt="Delete"></button>
+            <button id="plusTokenBtn" title="+Token"><img src="assets/plus.png" alt="+Token"></button>
+            <button id="minusTokenBtn" title="-Token"><img src="assets/minus.png" alt="-Token"></button>
+            <button id="playPauseBtn" title="Play/Pause"><img src="assets/play.png" alt="Play/Pause"></button>
+            <button id="resetBtn" title="Reset"><img src="assets/reset.png" alt="Reset"></button>
+            <button id="snapBtn" title="Snap"><img src="assets/snap.png" alt="Snap"></button>
+            <button id="speedBtn" title="Speed"><img src="assets/speed.png" alt="Speed"></button>
+            <button id="saveBtn" title="Save"><img src="assets/save.png" alt="Save"></button>
+            <button id="loadBtn" title="Load"><img src="assets/load.png" alt="Load"></button>
+            <button id="clearBtn" title="Clear"><img src="assets/clear.png" alt="Clear"></button>
+            <button id="switchBtn" title="Switch Model"><img src="assets/switch.png" alt="Switch"></button>
+            <button id="guideBtn" title="Guide"><img src="assets/guide.png" alt="Guide"></button>
+            <button id="annotateBtn" title="Annotate"><img src="assets/note.png" alt="Annotate"></button>
+            <div class="dropdown">
+                <button id="colorBtn" title="Color"><img src="assets/color.png" alt="Color"></button>
+                <div class="dropdown-content color-palette">
+                    <div class="color-option" style="background-color: black;" onclick="window.canvas.changeAnnotationColor('black')"></div>
+                    <div class="color-option" style="background-color: red;" onclick="window.canvas.changeAnnotationColor('red')"></div>
+                    <div class="color-option" style="background-color: blue;" onclick="window.canvas.changeAnnotationColor('blue')"></div>
+                    <div class="color-option" style="background-color: green;" onclick="window.canvas.changeAnnotationColor('green')"></div>
+                    <div class="color-option" style="background-color: #FF00FF;" onclick="window.canvas.changeAnnotationColor('#FF00FF')"></div>
+                    <div class="color-option" style="background-color: yellow;" onclick="window.canvas.changeAnnotationColor('yellow')"></div>
+                    <div class="color-option" style="background-color: orange;" onclick="window.canvas.changeAnnotationColor('orange')"></div>
+                    <div class="color-option" style="background-color: purple;" onclick="window.canvas.changeAnnotationColor('purple')"></div>
+                </div>
+            </div>
+            <div class="dropdown">
+                <button id="fontBtn" title="Font"><img src="assets/font.png" alt="Font"></button>
+                <div class="dropdown-content font-picker">
+                    <select id="fontFamilySelect" onchange="window.canvas.changeAnnotationFont(this.value, parseInt(document.getElementById('fontSizeSelect').value))">
+                        <option value="Arial">Arial</option>
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Courier New">Courier New</option>
+                        <option value="Verdana">Verdana</option>
+                        <option value="Helvetica">Helvetica</option>
+                    </select>
+                    <select id="fontSizeSelect" onchange="window.canvas.changeAnnotationFont(document.getElementById('fontFamilySelect').value, parseInt(this.value))">
+                        <option value="8">8</option>
+                        <option value="10">10</option>
+                        <option value="12" selected>12</option>
+                        <option value="14">14</option>
+                        <option value="16">16</option>
+                        <option value="18">18</option>
+                        <option value="20">20</option>
+                    </select>
+                </div>
+            </div>
+            <button id="pnfnBtn" title="PN-FN"><img src="assets/pnfn.png" alt="PN-FN"></button>
+            <button id="mrpnBtn" title="MR-PN"><img src="assets/mrpn.png" alt="MR-PN"></button>
         </div>
-        <button id="pnfnBtn" title="PN-FN"><img src="assets/pnfn.png" alt="PN-FN"></button>
-        <button id="mrpnBtn" title="MR-PN"><img src="assets/mrpn.png" alt="MR-PN"></button>
     </header>
     <div id="zoom-panel">
         <button id="zoomInBtn" title="Zoom In"><img src="assets/zin.png" alt="Zoom In"></button>

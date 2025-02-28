@@ -6,7 +6,7 @@ body {
 }
 
 #toolbar {
-    height: 60px; /* Reduced height for better fit */
+    height: 60px;
     background-color: #ffffff;
     display: flex;
     align-items: center;
@@ -14,8 +14,6 @@ body {
     padding: 8px 16px;
     border-bottom: 2px solid #e0e0e0;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    overflow-x: auto;
-    white-space: nowrap;
     position: fixed;
     top: 0;
     left: 0;
@@ -23,17 +21,26 @@ body {
     z-index: 1000;
 }
 
+#toolbarButtons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
 #zoom-panel {
     width: 50px;
+    height: 100px; /* Compact height */
     background-color: #f0f0f0;
     position: fixed;
-    top: 60px; /* Adjusted for toolbar height */
+    top: calc(50% - 50px); /* Centered vertically */
     left: 0;
     display: flex;
     flex-direction: column;
+    justify-content: center; /* Center buttons */
     gap: 10px;
     padding: 10px;
-    height: calc(100% - 90px); /* Account for toolbar and status bar */
     border-right: 2px solid #e0e0e0;
     box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
     z-index: 900;
@@ -44,7 +51,7 @@ body {
     top: 60px;
     left: 50px;
     width: calc(100% - 50px);
-    height: calc(100% - 90px); /* Account for toolbar and status bar */
+    height: calc(100% - 90px);
     background-color: #ffffff;
     z-index: 500;
 }
@@ -72,7 +79,8 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 10px;
+    padding: 0 15px; /* Increased padding */
+    border-top: 1px solid #555;
     z-index: 1000;
 }
 
@@ -83,13 +91,14 @@ body {
 #modelStatus {
     font-size: 12px;
     font-weight: bold;
+    padding-right: 10px; /* Move inward */
 }
 
 button {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px; /* Slightly smaller */
+    width: 36px;
     height: 36px;
     padding: 0;
     border: none;
@@ -99,14 +108,24 @@ button {
     position: relative;
 }
 
+#zoom-panel button {
+    width: 30px; /* Smaller for zoom panel */
+    height: 30px;
+}
+
 button:hover {
     background-color: #f0f0f0;
     border-radius: 4px;
 }
 
 button img {
-    width: 28px; /* Adjusted for smaller buttons */
+    width: 28px;
     height: 28px;
+}
+
+#zoom-panel button img {
+    width: 24px; /* Smaller icons */
+    height: 24px;
 }
 
 button:disabled img {
@@ -149,7 +168,7 @@ button[title]:hover:after {
     background-color: #fff;
     min-width: 160px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    z-index: 1100; /* Above all */
+    z-index: 1200; /* Increased to ensure visibility */
     border-radius: 4px;
     top: 100%;
     left: 0;
@@ -260,7 +279,7 @@ button[title]:hover:after {
 }
 
 textarea {
-    resize: none;
+    resize: both; /* Allow resizing */
     font-family: 'Monospaced', monospace;
     font-size: 14px;
     border: 1px solid #ddd;
@@ -270,44 +289,52 @@ textarea {
     box-sizing: border-box;
 }
 
-table.mrpn-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    margin-bottom: 10px;
+#burgerMenu {
+    display: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 10px;
+    z-index: 1100;
 }
 
-.mrpn-table td, .mrpn-table th {
-    padding: 8px;
-    text-align: center;
-    font-family: 'Monospaced', monospace;
-}
+/* Responsive Design */
+@media (max-width: 768px) {
+    #toolbar {
+        height: auto;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 0;
+    }
 
-.mrpn-table th {
-    background-color: #f2f2f2;
-    border: none;
-}
+    #burgerMenu {
+        display: block;
+    }
 
-.mrpn-table td {
-    border: none;
-}
+    #toolbarButtons {
+        display: none;
+        flex-direction: column;
+        width: 200px;
+        background-color: #ffffff;
+        position: fixed;
+        top: 60px;
+        right: 0;
+        height: calc(100% - 60px);
+        padding: 10px;
+        box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
+        z-index: 1100;
+    }
 
-.mrpn-table td:first-child {
-    border-right: 1px solid #000;
-}
+    #toolbarButtons.active {
+        display: flex;
+    }
 
-.mrpn-table td:not(:first-child):not(:last-child) {
-    border: none;
-}
+    #petriCanvas {
+        left: 0;
+        width: 100%;
+    }
 
-.mrpn-table td:last-child {
-    border-left: 1px solid #000;
-}
-
-.mrpn-table tr:first-child td:not(:first-child) {
-    border-top: 1px solid #000;
-}
-
-.mrpn-table tr:last-child td:not(:first-child) {
-    border-bottom: 1px solid #000;
+    #zoom-panel {
+        top: calc(50% - 50px);
+        left: 0;
+    }
 }
