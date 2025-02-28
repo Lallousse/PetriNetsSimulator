@@ -298,3 +298,36 @@ td, th {
 th {
     background-color: #f2f2f2;
 }
+/* Add to the end of style.css */
+.modal-btn {
+    padding: 8px 16px;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.modal-btn:hover {
+    background-color: #e0e0e0;
+}
+
+.modal-btn.save-btn {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+}
+
+.modal-btn.save-btn:hover {
+    background-color: #45a049;
+}
+
+.modal-btn.pin-btn {
+    background-color: #2196F3;
+    color: white;
+    border: none;
+}
+
+.modal-btn.pin-btn:hover {
+    background-color: #1976D2;
+}

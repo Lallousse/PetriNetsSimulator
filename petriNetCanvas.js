@@ -45,7 +45,7 @@ class PetriNetCanvas {
         this.iconSize = 32;
         this.tokenSize = 8;
         this.stepDelay = 1000;
-        this.animationSpeedBase = 0.0005; // Even slower for visibility
+        this.animationSpeedBase = 0.0005;
 
         this.icons = {};
         this.undoHistory = [];
@@ -164,7 +164,10 @@ class PetriNetCanvas {
         });
 
         window.addEventListener("resize", () => this.resize());
-        document.querySelectorAll(".close").forEach(close => close.onclick = () => close.parentElement.parentElement.style.display = "none");
+        document.querySelectorAll(".close").forEach(close => close.onclick = () => {
+            const modal = close.parentElement.parentElement;
+            if (modal) modal.remove();
+        });
     }
 
     renderLoop() {
@@ -172,15 +175,7 @@ class PetriNetCanvas {
         this.ctx.save();
         this.ctx.scale(this.zoomLevel, this.zoomLevel);
 
-        console.log("Rendering:", {
-            places: this.places.length,
-            transitions: this.transitions.length,
-            arcs: this.arcs.length,
-            initializers: this.initializers.length,
-            animations: this.animations.length
-        });
-
-        this.arcs.forEach(arc => arc.draw(this.ctx, this.iconSize));
+        this.arcs.forEach(arc => arc.draw(this.ctx, this.selectedElements.includes(arc), this.iconSize));
         if (this.drawingArc && this.arcStart && this.arcEnd) {
             this.ctx.strokeStyle = "green";
             this.ctx.beginPath();
@@ -202,7 +197,7 @@ class PetriNetCanvas {
         if (this.selected && this.selectedElements.length === 1) {
             this.drawProperties();
         }
-        if (this.editingElement && !(this.editingElement instanceof Place || this.editingElement instanceof Transition || this.editingElement instanceof Initializer)) {
+        if (this.editingElement && !(this.editingElement instanceof Place || this.editingElement instanceof Transition || this.editingElement instanceof Initializer || this.editingElement instanceof Arc)) {
             this.drawEditing(this.editingElement);
         }
 
@@ -268,12 +263,12 @@ class PetriNetCanvas {
         const input = document.createElement("textarea");
         const rect = this.canvas.getBoundingClientRect();
         input.style.position = "absolute";
-        input.style.left = `${rect.left + (element.x * this.zoomLevel) - (this.ctx.measureText(element.text).width / 2)}px`;
-        input.style.top = `${rect.top + (element.y * this.zoomLevel) + (this.iconSize / 2 * this.zoomLevel) + 15}px`;
+        input.style.left = `${rect.left + (element.x * this.zoomLevel)}px`;
+        input.style.top = `${rect.top + (element.y * this.zoomLevel)}px`;
         input.style.resize = "both";
         input.style.width = `${element.fontSize * 10}px`;
         input.style.height = `${element.fontSize * element.text.split("\n").length + 20}px`;
-        input.style.font = "12px Helvetica Neue";
+        input.style.font = `${element.fontSize}px ${element.fontName}`;
         input.style.zIndex = "1200";
         input.value = element.text;
         document.body.appendChild(input);
@@ -315,15 +310,19 @@ class PetriNetCanvas {
         modal.id = "editModal";
         modal.style.display = "block";
         modal.style.position = "fixed";
-        modal.style.left = "50%";
-        modal.style.top = "50%";
-        modal.style.transform = "translate(-50%, -50%)";
-        modal.style.resize = "both";
-        modal.style.overflow = "auto";
+        modal.style.left = "0";
+        modal.style.top = "0";
+        modal.style.width = "100%";
+        modal.style.height = "100%";
         modal.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+        modal.style.zIndex = "2000";
 
         const content = document.createElement("div");
         content.className = "modal-content";
+        content.style.position = "absolute";
+        content.style.left = "50%";
+        content.style.top = "50%";
+        content.style.transform = "translate(-50%, -50%)";
         content.style.backgroundColor = "#fff";
         content.style.padding = "20px";
         content.style.borderRadius = "8px";
@@ -332,54 +331,61 @@ class PetriNetCanvas {
         content.style.maxWidth = "90vw";
         content.style.maxHeight = "80vh";
         content.style.overflowY = "auto";
-        content.style.position = "relative";
-        content.style.cursor = "move";
+        content.style.resize = "both";
+
+        const header = document.createElement("div");
+        header.style.cursor = "move";
+        header.style.padding = "10px";
+        header.style.backgroundColor = "#f0f0f0";
+        header.style.borderBottom = "1px solid #ddd";
+        header.style.display = "flex";
+        header.style.justifyContent = "space-between";
+        header.style.alignItems = "center";
 
         const close = document.createElement("span");
         close.className = "close";
         close.innerHTML = "×";
-        close.style.position = "absolute";
-        close.style.top = "10px";
-        close.style.right = "10px";
+        close.style.fontSize = "20px";
+        close.style.cursor = "pointer";
         close.onclick = () => {
             document.body.removeChild(modal);
             this.editingElement = null;
         };
 
+        const title = document.createElement("h3");
+        title.style.margin = "0";
+        title.style.fontSize = "16px";
+
         const form = document.createElement("div");
         form.style.display = "grid";
         form.style.gridTemplateColumns = "1fr 2fr";
         form.style.gap = "10px";
+        form.style.padding = "10px 0";
         form.style.alignItems = "center";
 
-        const title = document.createElement("h3");
-        title.style.gridColumn = "1 / 3";
-        title.style.margin = "0 0 10px 0";
+        const pinBtn = document.createElement("button");
+        pinBtn.textContent = "Pin";
+        pinBtn.className = "modal-btn";
+        pinBtn.style.padding = "5px 10px";
+        pinBtn.onclick = () => {
+            modal.style.backgroundColor = "transparent";
+            modal.style.pointerEvents = "none";
+            content.style.pointerEvents = "auto";
+            pinBtn.style.display = "none";
+        };
 
-        let pinBtn = null;
-        if (!(element instanceof Annotation)) {
-            pinBtn = document.createElement("button");
-            pinBtn.textContent = "Pin";
-            pinBtn.style.gridColumn = "1 / 3";
-            pinBtn.style.justifySelf = "end";
-            pinBtn.style.padding = "5px 10px";
-            pinBtn.style.backgroundColor = "#ddd";
-            pinBtn.style.border = "none";
-            pinBtn.style.borderRadius = "4px";
-            pinBtn.style.cursor = "pointer";
-            pinBtn.onmouseover = () => pinBtn.style.backgroundColor = "#ccc";
-            pinBtn.onmouseout = () => pinBtn.style.backgroundColor = "#ddd";
-            pinBtn.onclick = () => {
-                modal.style.backgroundColor = "transparent";
-                modal.style.pointerEvents = "none";
-                content.style.pointerEvents = "auto";
-                pinBtn.style.display = "none";
-            };
-        }
+        const saveBtn = document.createElement("button");
+        saveBtn.textContent = "Save";
+        saveBtn.className = "modal-btn save-btn";
+        saveBtn.style.gridColumn = "1 / 3";
+        saveBtn.style.marginTop = "20px";
+
+        header.appendChild(title);
+        header.appendChild(close);
 
         if (element instanceof Place) {
             title.textContent = "Edit Place";
-            form.innerHTML += `
+            form.innerHTML = `
                 <label for="editName">Name:</label>
                 <input type="text" id="editName" value="${element.name}">
                 <label for="editTokens">Tokens:</label>
@@ -387,9 +393,16 @@ class PetriNetCanvas {
                 ${this.isSmartModel ? `<label for="editTokenValue">Token Value:</label>
                 <input type="number" id="editTokenValue" value="${element.getTokenValue()}">` : ""}
             `;
+            saveBtn.onclick = () => {
+                this.saveStateToUndo();
+                element.name = document.getElementById("editName").value;
+                element.tokens = parseInt(document.getElementById("editTokens").value) || 0;
+                if (this.isSmartModel) element.setTokenValue(parseFloat(document.getElementById("editTokenValue").value) || 0);
+                this.finishModal(modal);
+            };
         } else if (element instanceof Transition) {
             title.textContent = "Edit Transition";
-            form.innerHTML += `
+            form.innerHTML = `
                 <label for="editName">Name:</label>
                 <input type="text" id="editName" value="${element.name}">
                 ${this.isSmartModel ? `
@@ -405,9 +418,21 @@ class PetriNetCanvas {
                 <input type="checkbox" id="editPassPreviousValue" ${element.passPreviousValue ? "checked" : ""}>
                 ` : ""}
             `;
+            saveBtn.onclick = () => {
+                this.saveStateToUndo();
+                element.name = document.getElementById("editName").value;
+                if (this.isSmartModel) {
+                    element.task = new TransitionTask(document.getElementById("editTask").value);
+                    element.tokenOrder = document.getElementById("editTokenOrder").value;
+                    element.passOnTrue = document.getElementById("editPassOnTrue").checked;
+                    element.passOnFalse = document.getElementById("editPassOnFalse").checked;
+                    element.passPreviousValue = document.getElementById("editPassPreviousValue").checked;
+                }
+                this.finishModal(modal);
+            };
         } else if (element instanceof Initializer) {
             title.textContent = "Edit Initializer";
-            form.innerHTML += `
+            form.innerHTML = `
                 <label for="editName">Name:</label>
                 <input type="text" id="editName" value="${element.name}">
                 <label for="editTokensToGenerate">Tokens to Generate:</label>
@@ -421,36 +446,8 @@ class PetriNetCanvas {
                 <input type="number" id="editTokenValue" value="${element.tokenValue}">
                 ` : ""}
             `;
-        }
-
-        const saveBtn = document.createElement("button");
-        saveBtn.textContent = "Save";
-        saveBtn.style.gridColumn = "1 / 3";
-        saveBtn.style.padding = "8px 16px";
-        saveBtn.style.backgroundColor = "#4CAF50";
-        saveBtn.style.color = "white";
-        saveBtn.style.border = "none";
-        saveBtn.style.borderRadius = "4px";
-        saveBtn.style.cursor = "pointer";
-        saveBtn.style.marginTop = "20px";
-        saveBtn.onmouseover = () => saveBtn.style.backgroundColor = "#45a049";
-        saveBtn.onmouseout = () => saveBtn.style.backgroundColor = "#4CAF50";
-        saveBtn.onclick = () => {
-            this.saveStateToUndo();
-            if (element instanceof Place) {
-                element.name = document.getElementById("editName").value;
-                element.tokens = parseInt(document.getElementById("editTokens").value) || 0;
-                if (this.isSmartModel) element.setTokenValue(parseFloat(document.getElementById("editTokenValue").value) || 0);
-            } else if (element instanceof Transition) {
-                element.name = document.getElementById("editName").value;
-                if (this.isSmartModel) {
-                    element.task = new TransitionTask(document.getElementById("editTask").value);
-                    element.tokenOrder = document.getElementById("editTokenOrder").value;
-                    element.passOnTrue = document.getElementById("editPassOnTrue").checked;
-                    element.passOnFalse = document.getElementById("editPassOnFalse").checked;
-                    element.passPreviousValue = document.getElementById("editPassPreviousValue").checked;
-                }
-            } else if (element instanceof Initializer) {
+            saveBtn.onclick = () => {
+                this.saveStateToUndo();
                 element.name = document.getElementById("editName").value;
                 element.tokensToGenerate = parseInt(document.getElementById("editTokensToGenerate").value) || 0;
                 element.tokensPerSecond = parseFloat(document.getElementById("editTokensPerSecond").value) || 1.0;
@@ -458,179 +455,187 @@ class PetriNetCanvas {
                 if (this.isSmartModel) element.tokenValue = parseFloat(document.getElementById("editTokenValue").value) || 0;
                 element.tokensGenerated = 0;
                 element.lastGenerationTime = Date.now();
-            }
-            this.designState.setUnsavedChanges();
-            document.body.removeChild(modal);
-            this.editingElement = null;
-            this.updateButtonStates();
-        };
+                this.finishModal(modal);
+            };
+        } else if (element instanceof Arc && !this.isSmartModel) {
+            title.textContent = "Edit Arc";
+            form.innerHTML = `
+                <label for="editWeight">Weight:</label>
+                <input type="number" id="editWeight" value="${element.getWeight()}" min="1">
+            `;
+            saveBtn.onclick = () => {
+                this.saveStateToUndo();
+                const w = parseInt(document.getElementById("editWeight").value) || 1;
+                element.setWeight(w);
+                if (element.isInput) {
+                    element.end.inputArcs.find(a => a.place === element.start).weight = w;
+                } else {
+                    element.start.outputArcs.find(a => a.place === element.end).weight = w;
+                }
+                this.finishModal(modal);
+            };
+        }
 
-        content.appendChild(close);
-        content.appendChild(title);
+        content.appendChild(header);
         content.appendChild(form);
-        if (pinBtn) content.appendChild(pinBtn);
+        content.appendChild(pinBtn);
         content.appendChild(saveBtn);
         modal.appendChild(content);
         document.body.appendChild(modal);
 
         // Draggable functionality
         let offsetX, offsetY;
-        content.onmousedown = (e) => {
-            if (e.target === close || e.target === saveBtn || e.target.tagName === "INPUT" || e.target.tagName === "LABEL") return;
-            offsetX = e.clientX - modal.offsetLeft;
-            offsetY = e.clientY - modal.offsetTop;
+        header.onmousedown = (e) => {
+            if (e.target !== header) return;
+            offsetX = e.clientX - content.offsetLeft;
+            offsetY = e.clientY - content.offsetTop;
             document.onmousemove = (e) => {
-                modal.style.left = `${e.clientX - offsetX}px`;
-                modal.style.top = `${e.clientY - offsetY}px`;
-                modal.style.transform = "none";
+                content.style.left = `${e.clientX - offsetX}px`;
+                content.style.top = `${e.clientY - offsetY}px`;
+                content.style.transform = "none";
             };
             document.onmouseup = () => {
                 document.onmousemove = null;
                 document.onmouseup = null;
             };
         };
+    }
+
+    finishModal(modal) {
+        this.designState.setUnsavedChanges();
+        document.body.removeChild(modal);
+        this.editingElement = null;
+        this.updateButtonStates();
     }
 
     showPNFN() {
-        const analyzer = new NetAnalyzer(this);
-        const nets = analyzer.analyze();
-        let text = "";
-        nets.forEach((net, i) => {
-            text += `Net ${i + 1}:\n${net.toFormalNotation(this.isSmartModel)}\n\n`;
-        });
+        try {
+            const analyzer = new NetAnalyzer(this);
+            const nets = analyzer.analyze();
+            let text = "";
+            nets.forEach((net, i) => {
+                text += `Net ${i + 1}:\n${net.toFormalNotation(this.isSmartModel)}\n\n`;
+            });
 
-        const modal = document.createElement("div");
-        modal.className = "modal";
-        modal.id = "pnfnModal";
-        modal.style.display = "block";
-        modal.style.position = "fixed";
-        modal.style.left = "50%";
-        modal.style.top = "50%";
-        modal.style.transform = "translate(-50%, -50%)";
-        modal.style.resize = "both";
-        modal.style.overflow = "auto";
-        modal.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+            const modal = document.createElement("div");
+            modal.className = "modal";
+            modal.id = "pnfnModal";
+            modal.style.display = "block";
+            modal.style.position = "fixed";
+            modal.style.left = "0";
+            modal.style.top = "0";
+            modal.style.width = "100%";
+            modal.style.height = "100%";
+            modal.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+            modal.style.zIndex = "2000";
 
-        const content = document.createElement("div");
-        content.className = "modal-content";
-        content.style.backgroundColor = "#fff";
-        content.style.padding = "20px";
-        content.style.borderRadius = "8px";
-        content.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
-        content.style.width = "600px";
-        content.style.maxWidth = "90vw";
-        content.style.maxHeight = "80vh";
-        content.style.overflowY = "auto";
-        content.style.position = "relative";
-        content.style.cursor = "move";
+            const content = this.createModalContent("Petri Net Formal Notation (PN-FN)", [
+                { type: "textarea", id: "pnfnText", value: text, readOnly: true, style: { width: "100%", height: "300px" } },
+                { type: "button", text: "Insert as Note", onClick: () => this.insertPNFNAsNote() },
+                { type: "button", text: "Regenerate All", onClick: () => this.regeneratePNFN(true) },
+                { type: "button", text: "Regenerate M0", onClick: () => this.regeneratePNFN(false) },
+                { type: "button", text: "Pin", className: "pin-btn" }
+            ]);
 
-        const close = document.createElement("span");
-        close.className = "close";
-        close.innerHTML = "×";
-        close.style.position = "absolute";
-        close.style.top = "10px";
-        close.style.right = "10px";
-        close.onclick = () => {
-            document.body.removeChild(modal);
-        };
-
-        const title = document.createElement("h3");
-        title.textContent = "Petri Net Formal Notation (PN-FN)";
-        title.style.margin = "0 0 10px 0";
-
-        const textarea = document.createElement("textarea");
-        textarea.id = "pnfnText";
-        textarea.value = text;
-        textarea.readOnly = true;
-        textarea.style.width = "100%";
-        textarea.style.height = "300px";
-        textarea.style.resize = "none";
-        textarea.style.padding = "10px";
-        textarea.style.border = "1px solid #ddd";
-        textarea.style.borderRadius = "4px";
-
-        const buttons = document.createElement("div");
-        buttons.className = "modal-buttons";
-        buttons.style.display = "flex";
-        buttons.style.gap = "10px";
-        buttons.style.marginTop = "10px";
-
-        const insertBtn = document.createElement("button");
-        insertBtn.textContent = "Insert as Note";
-        insertBtn.style.padding = "8px 16px";
-        insertBtn.onclick = () => this.insertPNFNAsNote();
-
-        const regenAllBtn = document.createElement("button");
-        regenAllBtn.textContent = "Regenerate All";
-        regenAllBtn.style.padding = "8px 16px";
-        regenAllBtn.onclick = () => this.regeneratePNFN(true);
-
-        const regenM0Btn = document.createElement("button");
-        regenM0Btn.textContent = "Regenerate M0";
-        regenM0Btn.style.padding = "8px 16px";
-        regenM0Btn.onclick = () => this.regeneratePNFN(false);
-
-        const pinBtn = document.createElement("button");
-        pinBtn.textContent = "Pin";
-        pinBtn.style.padding = "8px 16px";
-        pinBtn.onclick = () => {
-            modal.style.backgroundColor = "transparent";
-            modal.style.pointerEvents = "none";
-            content.style.pointerEvents = "auto";
-            pinBtn.style.display = "none";
-        };
-
-        buttons.appendChild(insertBtn);
-        buttons.appendChild(regenAllBtn);
-        buttons.appendChild(regenM0Btn);
-        buttons.appendChild(pinBtn);
-
-        content.appendChild(close);
-        content.appendChild(title);
-        content.appendChild(textarea);
-        content.appendChild(buttons);
-        modal.appendChild(content);
-        document.body.appendChild(modal);
-
-        // Draggable functionality
-        let offsetX, offsetY;
-        content.onmousedown = (e) => {
-            if (e.target === close || e.target === insertBtn || e.target === regenAllBtn || e.target === regenM0Btn || e.target === pinBtn || e.target === textarea) return;
-            offsetX = e.clientX - modal.offsetLeft;
-            offsetY = e.clientY - modal.offsetTop;
-            document.onmousemove = (e) => {
-                modal.style.left = `${e.clientX - offsetX}px`;
-                modal.style.top = `${e.clientY - offsetY}px`;
-                modal.style.transform = "none";
-            };
-            document.onmouseup = () => {
-                document.onmousemove = null;
-                document.onmouseup = null;
-            };
-        };
-
-        this.updateStatus("PN-FN opened", this.isSmartModel ? "S-Model" : "T-Model");
-        console.log("PN-FN modal opened");
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+            this.updateStatus("PN-FN opened", this.isSmartModel ? "S-Model" : "T-Model");
+            console.log("PN-FN modal opened");
+        } catch (e) {
+            console.error("Error in showPNFN:", e);
+            this.updateStatus("Error opening PN-FN: " + e.message, this.isSmartModel ? "S-Model" : "T-Model");
+        }
     }
 
     showMRPN() {
-        const analyzer = new NetAnalyzer(this);
-        const nets = analyzer.analyze();
+        try {
+            const analyzer = new NetAnalyzer(this);
+            const nets = analyzer.analyze();
 
-        const modal = document.createElement("div");
-        modal.className = "modal";
-        modal.id = "mrpnModal";
-        modal.style.display = "block";
-        modal.style.position = "fixed";
-        modal.style.left = "50%";
-        modal.style.top = "50%";
-        modal.style.transform = "translate(-50%, -50%)";
-        modal.style.resize = "both";
-        modal.style.overflow = "auto";
-        modal.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+            const modal = document.createElement("div");
+            modal.className = "modal";
+            modal.id = "mrpnModal";
+            modal.style.display = "block";
+            modal.style.position = "fixed";
+            modal.style.left = "0";
+            modal.style.top = "0";
+            modal.style.width = "100%";
+            modal.style.height = "100%";
+            modal.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+            modal.style.zIndex = "2000";
 
+            const tableContainer = document.createElement("div");
+            tableContainer.id = "mrpnTableContainer";
+            tableContainer.style.maxHeight = "300px";
+            tableContainer.style.overflowY = "auto";
+            tableContainer.style.border = "1px solid #ddd";
+            tableContainer.style.padding = "10px";
+            tableContainer.style.borderRadius = "4px";
+
+            nets.forEach((net, netIndex) => {
+                const placeList = Array.from(net.places);
+                const transitionList = Array.from(net.transitions);
+                if (placeList.length === 0 || transitionList.length === 0) {
+                    tableContainer.innerHTML += `<p>Net ${netIndex + 1}: No design elements available.</p>`;
+                    return;
+                }
+
+                let inputTable = `<h4>Net ${netIndex + 1} - Input Matrix</h4><table><tr><th></th>`;
+                transitionList.forEach(t => inputTable += `<th>${t.name}</th>`);
+                inputTable += "</tr>";
+                placeList.forEach(p => {
+                    inputTable += `<tr><td>${p.name}</td>`;
+                    transitionList.forEach(t => {
+                        const weight = net.inputFunction.get(`${p.name},${t.name}`) || 0;
+                        const value = this.isSmartModel ? (weight > 0 ? 1 : 0) : weight;
+                        inputTable += `<td>[${value}]</td>`;
+                    });
+                    inputTable += "</tr>";
+                });
+                inputTable += "</table>";
+
+                let outputTable = `<h4>Net ${netIndex + 1} - Output Matrix</h4><table><tr><th></th>`;
+                transitionList.forEach(t => outputTable += `<th>${t.name}</th>`);
+                outputTable += "</tr>";
+                placeList.forEach(p => {
+                    outputTable += `<tr><td>${p.name}</td>`;
+                    transitionList.forEach(t => {
+                        const weight = net.outputFunction.get(`${p.name},${t.name}`) || 0;
+                        const value = this.isSmartModel ? (weight > 0 ? 1 : 0) : weight;
+                        outputTable += `<td>[${value}]</td>`;
+                    });
+                    outputTable += "</tr>";
+                });
+                outputTable += "</table>";
+
+                tableContainer.innerHTML += inputTable + outputTable;
+            });
+
+            const content = this.createModalContent("Matrix Representation Petri Net (MR-PN)", [
+                { type: "custom", element: tableContainer },
+                { type: "button", text: "Insert as Note", onClick: () => this.insertMRPNAsNote() },
+                { type: "button", text: "Regenerate All", onClick: () => this.regenerateMRPN(true) },
+                { type: "button", text: "Regenerate M0", onClick: () => this.regenerateMRPN(false) },
+                { type: "button", text: "Pin", className: "pin-btn" }
+            ]);
+
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+            this.updateStatus("MR-PN opened", this.isSmartModel ? "S-Model" : "T-Model");
+            console.log("MR-PN modal opened");
+        } catch (e) {
+            console.error("Error in showMRPN:", e);
+            this.updateStatus("Error opening MR-PN: " + e.message, this.isSmartModel ? "S-Model" : "T-Model");
+        }
+    }
+
+    createModalContent(titleText, elements) {
         const content = document.createElement("div");
         content.className = "modal-content";
+        content.style.position = "absolute";
+        content.style.left = "50%";
+        content.style.top = "50%";
+        content.style.transform = "translate(-50%, -50%)";
         content.style.backgroundColor = "#fff";
         content.style.padding = "20px";
         content.style.borderRadius = "8px";
@@ -639,123 +644,72 @@ class PetriNetCanvas {
         content.style.maxWidth = "90vw";
         content.style.maxHeight = "80vh";
         content.style.overflowY = "auto";
-        content.style.position = "relative";
-        content.style.cursor = "move";
+        content.style.resize = "both";
+
+        const header = document.createElement("div");
+        header.style.cursor = "move";
+        header.style.padding = "10px";
+        header.style.backgroundColor = "#f0f0f0";
+        header.style.borderBottom = "1px solid #ddd";
+        header.style.display = "flex";
+        header.style.justifyContent = "space-between";
+        header.style.alignItems = "center";
+
+        const title = document.createElement("h3");
+        title.textContent = titleText;
+        title.style.margin = "0";
+        title.style.fontSize = "16px";
 
         const close = document.createElement("span");
         close.className = "close";
         close.innerHTML = "×";
-        close.style.position = "absolute";
-        close.style.top = "10px";
-        close.style.right = "10px";
-        close.onclick = () => {
-            document.body.removeChild(modal);
-        };
+        close.style.fontSize = "20px";
+        close.style.cursor = "pointer";
+        close.onclick = () => content.parentElement.remove();
 
-        const title = document.createElement("h3");
-        title.textContent = "Matrix Representation Petri Net (MR-PN)";
-        title.style.margin = "0 0 10px 0";
+        header.appendChild(title);
+        header.appendChild(close);
+        content.appendChild(header);
 
-        const tableContainer = document.createElement("div");
-        tableContainer.id = "mrpnTableContainer";
-        tableContainer.style.maxHeight = "300px";
-        tableContainer.style.overflowY = "auto";
-        tableContainer.style.border = "1px solid #ddd";
-        tableContainer.style.padding = "10px";
-        tableContainer.style.borderRadius = "4px";
-
-        nets.forEach((net, netIndex) => {
-            const placeList = Array.from(net.places);
-            const transitionList = Array.from(net.transitions);
-            if (placeList.length === 0 || transitionList.length === 0) {
-                tableContainer.innerHTML += `<p>Net ${netIndex + 1}: No design elements available.</p>`;
-                return;
+        elements.forEach(elem => {
+            if (elem.type === "textarea") {
+                const textarea = document.createElement("textarea");
+                textarea.id = elem.id;
+                textarea.value = elem.value || "";
+                if (elem.readOnly) textarea.readOnly = true;
+                Object.assign(textarea.style, elem.style);
+                content.appendChild(textarea);
+            } else if (elem.type === "button") {
+                const button = document.createElement("button");
+                button.textContent = elem.text;
+                button.className = `modal-btn ${elem.className || ""}`;
+                button.style.padding = "8px 16px";
+                if (elem.onClick) button.onclick = elem.onClick;
+                if (elem.className === "pin-btn") {
+                    button.onclick = () => {
+                        const modal = content.parentElement;
+                        modal.style.backgroundColor = "transparent";
+                        modal.style.pointerEvents = "none";
+                        content.style.pointerEvents = "auto";
+                        button.style.display = "none";
+                    };
+                }
+                content.appendChild(button);
+            } else if (elem.type === "custom") {
+                content.appendChild(elem.element);
             }
-
-            let inputTable = `<h4>Net ${netIndex + 1} - Input Matrix</h4><table><tr><th></th>`;
-            transitionList.forEach(t => inputTable += `<th>${t.name}</th>`);
-            inputTable += "</tr>";
-            placeList.forEach(p => {
-                inputTable += `<tr><td>${p.name}</td>`;
-                transitionList.forEach(t => {
-                    const weight = net.inputFunction.get(`${p.name},${t.name}`) || 0;
-                    const value = this.isSmartModel ? (weight > 0 ? 1 : 0) : weight;
-                    inputTable += `<td>[${value}]</td>`;
-                });
-                inputTable += "</tr>";
-            });
-            inputTable += "</table>";
-
-            let outputTable = `<h4>Net ${netIndex + 1} - Output Matrix</h4><table><tr><th></th>`;
-            transitionList.forEach(t => outputTable += `<th>${t.name}</th>`);
-            outputTable += "</tr>";
-            placeList.forEach(p => {
-                outputTable += `<tr><td>${p.name}</td>`;
-                transitionList.forEach(t => {
-                    const weight = net.outputFunction.get(`${p.name},${t.name}`) || 0;
-                    const value = this.isSmartModel ? (weight > 0 ? 1 : 0) : weight;
-                    outputTable += `<td>[${value}]</td>`;
-                });
-                outputTable += "</tr>";
-            });
-            outputTable += "</table>";
-
-            tableContainer.innerHTML += inputTable + outputTable;
         });
-
-        const buttons = document.createElement("div");
-        buttons.className = "modal-buttons";
-        buttons.style.display = "flex";
-        buttons.style.gap = "10px";
-        buttons.style.marginTop = "10px";
-
-        const insertBtn = document.createElement("button");
-        insertBtn.textContent = "Insert as Note";
-        insertBtn.style.padding = "8px 16px";
-        insertBtn.onclick = () => this.insertMRPNAsNote();
-
-        const regenAllBtn = document.createElement("button");
-        regenAllBtn.textContent = "Regenerate All";
-        regenAllBtn.style.padding = "8px 16px";
-        regenAllBtn.onclick = () => this.regenerateMRPN(true);
-
-        const regenM0Btn = document.createElement("button");
-        regenM0Btn.textContent = "Regenerate M0";
-        regenM0Btn.style.padding = "8px 16px";
-        regenM0Btn.onclick = () => this.regenerateMRPN(false);
-
-        const pinBtn = document.createElement("button");
-        pinBtn.textContent = "Pin";
-        pinBtn.style.padding = "8px 16px";
-        pinBtn.onclick = () => {
-            modal.style.backgroundColor = "transparent";
-            modal.style.pointerEvents = "none";
-            content.style.pointerEvents = "auto";
-            pinBtn.style.display = "none";
-        };
-
-        buttons.appendChild(insertBtn);
-        buttons.appendChild(regenAllBtn);
-        buttons.appendChild(regenM0Btn);
-        buttons.appendChild(pinBtn);
-
-        content.appendChild(close);
-        content.appendChild(title);
-        content.appendChild(tableContainer);
-        content.appendChild(buttons);
-        modal.appendChild(content);
-        document.body.appendChild(modal);
 
         // Draggable functionality
         let offsetX, offsetY;
-        content.onmousedown = (e) => {
-            if (e.target === close || e.target === insertBtn || e.target === regenAllBtn || e.target === regenM0Btn || e.target === pinBtn) return;
-            offsetX = e.clientX - modal.offsetLeft;
-            offsetY = e.clientY - modal.offsetTop;
+        header.onmousedown = (e) => {
+            if (e.target !== header) return;
+            offsetX = e.clientX - content.offsetLeft;
+            offsetY = e.clientY - content.offsetTop;
             document.onmousemove = (e) => {
-                modal.style.left = `${e.clientX - offsetX}px`;
-                modal.style.top = `${e.clientY - offsetY}px`;
-                modal.style.transform = "none";
+                content.style.left = `${e.clientX - offsetX}px`;
+                content.style.top = `${e.clientY - offsetY}px`;
+                content.style.transform = "none";
             };
             document.onmouseup = () => {
                 document.onmousemove = null;
@@ -763,8 +717,7 @@ class PetriNetCanvas {
             };
         };
 
-        this.updateStatus("MR-PN opened", this.isSmartModel ? "S-Model" : "T-Model");
-        console.log("MR-PN modal opened");
+        return content;
     }
 
     handleMouseDown(e) {
@@ -795,14 +748,14 @@ class PetriNetCanvas {
             if (arc && this.isNearControlPoint(x, y, arc)) {
                 this.selected = arc;
                 this.draggingControlPoint = true;
-            } else if (annotation) {
-                if (!e.ctrlKey) this.selectedElements = [];
-                this.selectedElements.push(annotation);
-                this.selected = annotation;
             } else if (arc) {
                 if (!e.ctrlKey) this.selectedElements = [];
                 this.selectedElements.push(arc);
                 this.selected = arc;
+            } else if (annotation) {
+                if (!e.ctrlKey) this.selectedElements = [];
+                this.selectedElements.push(annotation);
+                this.selected = annotation;
             } else if (elem) {
                 if (!this.selectedElements.includes(elem)) {
                     if (!e.ctrlKey) this.selectedElements = [];
@@ -966,16 +919,16 @@ class PetriNetCanvas {
 
         if (this.addMode === "select" && (elem || arc || annotation)) {
             this.editingElement = elem || arc || annotation;
-            if ((elem instanceof Place || elem instanceof Transition) || (elem instanceof Initializer)) {
-                this.showEditModal(elem);
-            } else {
+            if (elem instanceof Place || elem instanceof Transition || elem instanceof Initializer || (arc && !this.isSmartModel)) {
+                this.showEditModal(this.editingElement);
+            } else if (annotation) {
                 this.renderLoop();
             }
         }
     }
 
     handleClick(e) {
-        if (!this.editingElement || (this.editingElement instanceof Place || this.editingElement instanceof Transition || this.editingElement instanceof Initializer)) return;
+        if (!this.editingElement || (this.editingElement instanceof Place || this.editingElement instanceof Transition || this.editingElement instanceof Initializer || this.editingElement instanceof Arc)) return;
         const rect = this.canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) / this.zoomLevel;
         const y = (e.clientY - rect.top) / this.zoomLevel;
@@ -1002,12 +955,7 @@ class PetriNetCanvas {
         input.style.display = "none";
         input.onchange = (e) => {
             const file = e.target.files[0];
-            if (!file) {
-                this.updateStatus("No save location selected, using default name", this.isSmartModel ? "S-Model" : "T-Model");
-                this.designState.currentFileName = "Untitled.json";
-            } else {
-                this.designState.currentFileName = file.name;
-            }
+            this.designState.currentFileName = file ? file.name : "Untitled.json";
             this.saveStateToUndo();
             this.places = [];
             this.transitions = [];
@@ -1039,11 +987,6 @@ class PetriNetCanvas {
         if (btn) btn.classList.add("highlighted");
         this.canvas.style.cursor = this.handMode ? "grab" : "default";
         console.log(`Mode set to: ${mode}`);
-    }
-
-    setArcType(type) {
-        this.arcType = "line"; // Fixed to line only
-        console.log("Arc type set to: line");
     }
 
     deleteSelected() {
@@ -1233,9 +1176,7 @@ class PetriNetCanvas {
     toggleModel() {
         this.isSmartModel = !this.isSmartModel;
         document.getElementById("switchBtn").classList.toggle("active", this.isSmartModel);
-        document.getElementById("switchBtn").innerHTML = this.isSmartModel ?
-            `<img src="assets/switch.png" alt="Switch">` :
-            `<img src="assets/switch.png" alt="Switch">`;
+        document.getElementById("switchBtn").innerHTML = `<img src="assets/switch.png" alt="Switch">`;
         this.updateStatus(`Model switched to ${this.isSmartModel ? "S-Model" : "T-Model"}`, this.isSmartModel ? "S-Model" : "T-Model");
         console.log("Model toggled to:", this.isSmartModel ? "S-Model" : "T-Model");
     }
@@ -1371,11 +1312,8 @@ class PetriNetCanvas {
 
     simulateStep() {
         const enabled = this.transitions.filter(t => {
-            if (this.isSmartModel) {
-                return t.isEnabledSmart() && this.allTokensArrived(t);
-            } else {
-                return t.isEnabled() && !t.active && this.allTokensArrived(t);
-            }
+            const isEnabled = this.isSmartModel ? t.isEnabledSmart() : t.isEnabled();
+            return isEnabled && !t.active && this.canFireTransition(t);
         });
         if (enabled.length > 0) {
             const t = enabled[Math.floor(Math.random() * enabled.length)];
@@ -1386,16 +1324,25 @@ class PetriNetCanvas {
             }
             this.updateStatus(`Fired transition: ${t.name}`, this.isSmartModel ? "S-Model" : "T-Model");
             console.log("Simulated step, fired transition:", t.name);
+            this.generateTransitionTokens(t);
         }
     }
 
-    allTokensArrived(transition) {
-        return transition.inputArcs.every(arc => {
-            const source = arc.place;
-            const animationsToTransition = this.animations.filter(anim => 
-                anim.sourcePlace === source && anim.toTransition && anim.targetX === transition.x && anim.targetY === transition.y
-            );
-            return animationsToTransition.length === arc.weight || (this.isSmartModel && animationsToTransition.length > 0);
+    canFireTransition(transition) {
+        return transition.inputArcs.every(arc => arc.place.tokens >= (this.isSmartModel ? 1 : arc.weight));
+    }
+
+    generateTransitionTokens(transition) {
+        transition.inputArcs.forEach(arc => {
+            const place = arc.place;
+            if (place.tokens > 0) {
+                const anim = this.isSmartModel ?
+                    new TokenAnimation(place.x, place.y, transition.x, transition.y, null, place, new SmartToken(place.getTokenValue())) :
+                    new TokenAnimation(place.x, place.y, transition.x, transition.y, null, place);
+                anim.toTransition = true;
+                this.animations.push(anim);
+                place.removeToken();
+            }
         });
     }
 
@@ -1403,7 +1350,17 @@ class PetriNetCanvas {
         this.animations = this.animations.filter(anim => {
             anim.update();
             if (anim.isFinished()) {
-                if (anim.targetPlace) {
+                if (anim.toTransition) {
+                    const transition = this.transitions.find(t => t.x === anim.targetX && t.y === anim.targetY);
+                    if (transition && this.canFireTransition(transition)) {
+                        transition.outputArcs.forEach(outArc => {
+                            const newAnim = this.isSmartModel ?
+                                new TokenAnimation(transition.x, transition.y, outArc.place.x, outArc.place.y, outArc.place, null, anim.smartToken) :
+                                new TokenAnimation(transition.x, transition.y, outArc.place.x, outArc.place.y, outArc.place);
+                            this.animations.push(newAnim);
+                        });
+                    }
+                } else if (anim.targetPlace) {
                     anim.targetPlace.addToken();
                     if (this.isSmartModel && anim.smartToken) anim.targetPlace.setTokenValue(anim.smartToken.value);
                 }
@@ -1460,7 +1417,16 @@ class PetriNetCanvas {
             const endY = arc.end.y;
             const midX = (startX + endX) / 2;
             const midY = (startY + endY) / 2;
-            if (Math.abs(x - midX) < 10 && Math.abs(y - midY) < 10) return arc;
+            const dx = endX - startX;
+            const dy = endY - startY;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            const unitX = dx / length;
+            const unitY = dy / length;
+            const perpX = -unitY;
+            const perpY = unitX;
+            const dist = Math.abs(perpX * (x - midX) + perpY * (y - midY));
+            const along = unitX * (x - midX) + unitY * (y - midY);
+            if (dist < 10 && Math.abs(along) <= length / 2) return arc;
         }
         return null;
     }
