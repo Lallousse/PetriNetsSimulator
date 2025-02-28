@@ -13,12 +13,14 @@
         <button id="placeBtn" title="Place"><img src="assets/place.png" alt="Place"></button>
         <button id="transitionBtn" title="Transition"><img src="assets/transition.png" alt="Transition"></button>
         <button id="iniBtn" title="Initializer"><img src="assets/ini.png" alt="Initializer"></button>
-        <button id="arcBtn" title="Arc"><img src="assets/arc.png" alt="Arc"></button>
-        <select id="arcTypeSelect" title="Arc Type" style="height: 40px;">
-            <option value="line">Line</option>
-            <option value="flexible">Flexible Arc</option>
-            <option value="90degree">90-Degree Line</option>
-        </select>
+        <div class="dropdown">
+            <button id="arcBtn" title="Arc"><img src="assets/arc.png" alt="Arc"></button>
+            <div class="dropdown-content">
+                <button onclick="canvas.setArcType('line')">Line</button>
+                <button onclick="canvas.setArcType('flexible')">Flexible Arc</button>
+                <button onclick="canvas.setArcType('90degree')">90-Degree Line</button>
+            </div>
+        </div>
         <button id="deleteBtn" title="Delete"><img src="assets/delete.png" alt="Delete"></button>
         <button id="plusTokenBtn" title="+Token"><img src="assets/plus.png" alt="+Token"></button>
         <button id="minusTokenBtn" title="-Token"><img src="assets/minus.png" alt="-Token"></button>
@@ -32,20 +34,26 @@
         <button id="switchBtn" title="Switch Model"><img src="assets/switch.png" alt="Switch"></button>
         <button id="guideBtn" title="Guide"><img src="assets/guide.png" alt="Guide"></button>
         <button id="annotateBtn" title="Annotate"><img src="assets/note.png" alt="Annotate"></button>
-        <select id="colorSelect" title="Color" style="height: 40px;">
-            <option value="black">Black</option>
-            <option value="red">Red</option>
-            <option value="blue">Blue</option>
-            <option value="green">Green</option>
-            <option value="#FF00FF">Magenta</option>
-        </select>
-        <select id="fontSelect" title="Font" style="height: 40px;">
-            <option value="Arial">Arial</option>
-            <option value="Times New Roman">Times New Roman</option>
-            <option value="Courier New">Courier New</option>
-            <option value="Verdana">Verdana</option>
-            <option value="Helvetica">Helvetica</option>
-        </select>
+        <div class="dropdown">
+            <button id="colorBtn" title="Color"><img src="assets/color.png" alt="Color"></button>
+            <div class="dropdown-content">
+                <button onclick="canvas.changeAnnotationColor('black')">Black</button>
+                <button onclick="canvas.changeAnnotationColor('red')">Red</button>
+                <button onclick="canvas.changeAnnotationColor('blue')">Blue</button>
+                <button onclick="canvas.changeAnnotationColor('green')">Green</button>
+                <button onclick="canvas.changeAnnotationColor('#FF00FF')">Magenta</button>
+            </div>
+        </div>
+        <div class="dropdown">
+            <button id="fontBtn" title="Font"><img src="assets/font.png" alt="Font"></button>
+            <div class="dropdown-content">
+                <button onclick="canvas.changeAnnotationFont('Arial', 12)">Arial 12</button>
+                <button onclick="canvas.changeAnnotationFont('Times New Roman', 12)">Times New Roman 12</button>
+                <button onclick="canvas.changeAnnotationFont('Courier New', 12)">Courier New 12</button>
+                <button onclick="canvas.changeAnnotationFont('Verdana', 12)">Verdana 12</button>
+                <button onclick="canvas.changeAnnotationFont('Helvetica', 12)">Helvetica 12</button>
+            </div>
+        </div>
         <button id="pnfnBtn" title="PN-FN"><img src="assets/pnfn.png" alt="PN-FN"></button>
         <button id="mrpnBtn" title="MR-PN"><img src="assets/mrpn.png" alt="MR-PN"></button>
     </header>
@@ -83,8 +91,17 @@
             </div>
         </div>
     </div>
+    <div id="loadModal" class="modal">
+        <div class="modal-content">
+            <span class="close">×</span>
+            <h3>Load JSON Design</h3>
+            <textarea id="loadJsonText" style="width: 100%; height: 200px;"></textarea>
+            <button id="loadJsonBtn">Load</button>
+        </div>
+    </div>
     <script src="utils.js"></script>
     <script src="elements.js"></script>
     <script src="core.js"></script>
+    <script src="petriNetCanvas.js"></script>
 </body>
 </html>

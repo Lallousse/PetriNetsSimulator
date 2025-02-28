@@ -39,22 +39,63 @@ class Place {
         }
         ctx.drawImage(img, this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
         if (selected) {
-            ctx.fillStyle = "rgba(255, 255, 0, 0.3)"; // Highlight fill
+            ctx.fillStyle = "rgba(255, 255, 0, 0.3)";
             ctx.beginPath();
             ctx.arc(this.x, this.y, iconSize / 2, 0, Math.PI * 2);
             ctx.fill();
         }
+
         ctx.fillStyle = "black";
-        const visibleTokens = Math.min(this.tokens, 2);
-        for (let i = 0; i < visibleTokens; i++) {
-            const tokenX = this.x - tokenSize + (i * tokenSize); // Center tokens inside circle
-            const tokenY = this.y - tokenSize / 4;
+        const radius = iconSize / 2 - 4; // Space inside circle
+        if (this.tokens === 1) {
             ctx.beginPath();
-            ctx.arc(tokenX, tokenY, tokenSize / 2, 0, Math.PI * 2);
+            ctx.arc(this.x, this.y, tokenSize / 2, 0, Math.PI * 2);
             ctx.fill();
-        }
-        if (this.tokens > 2) {
-            ctx.fillText("+", this.x + 5, this.y + 5); // Inside circle
+        } else if (this.tokens === 2) {
+            ctx.beginPath();
+            ctx.arc(this.x - tokenSize, this.y, tokenSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(this.x + tokenSize, this.y, tokenSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (this.tokens === 3) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y - tokenSize, tokenSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(this.x - tokenSize, this.y + tokenSize / 2, tokenSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(this.x + tokenSize, this.y + tokenSize / 2, tokenSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (this.tokens === 4) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y - tokenSize, tokenSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(this.x - tokenSize, this.y, tokenSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(this.x + tokenSize, this.y, tokenSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(this.x, this.y + tokenSize, tokenSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (this.tokens > 4) {
+            const smallTokenSize = tokenSize / 1.5;
+            ctx.beginPath();
+            ctx.arc(this.x - smallTokenSize, this.y - smallTokenSize, smallTokenSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(this.x + smallTokenSize, this.y - smallTokenSize, smallTokenSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(this.x - smallTokenSize, this.y + smallTokenSize, smallTokenSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(this.x + smallTokenSize, this.y + smallTokenSize, smallTokenSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillText("+", this.x - 3, this.y + 5);
         }
         ctx.fillText(this.name, this.x - ctx.measureText(this.name).width / 2, this.y + iconSize / 2 + 15);
     }
@@ -120,7 +161,7 @@ class Transition {
                         animations.push(new TokenAnimation(this.x, this.y, a.place.x, a.place.y, a.place));
                     }
                 });
-            }, 500); // Animation delay
+            }, 1000); // Slower animation
         }
     }
 
@@ -135,7 +176,7 @@ class Transition {
                     this.outputArcs.forEach(a => {
                         animations.push(new TokenAnimation(this.x, this.y, a.place.x, a.place.y, a.place, null, result));
                     });
-                }, delay > 0 ? delay : 500);
+                }, delay > 0 ? delay : 1000);
             }
         }
     }
@@ -148,7 +189,7 @@ class Transition {
         }
         ctx.drawImage(img, this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
         if (selected) {
-            ctx.fillStyle = "rgba(255, 255, 0, 0.3)"; // Highlight fill
+            ctx.fillStyle = "rgba(255, 255, 0, 0.3)";
             ctx.fillRect(this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
         }
         ctx.fillStyle = "black";
@@ -162,18 +203,17 @@ class Arc {
         this.start = start;
         this.end = end;
         this.isInput = isInput;
-        this.type = type; // Line, flexible, 90degree
+        this.type = type;
+        this.controlPoints = this.type === "flexible" ? [{ x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 }] : [];
+        this.weight = 1; // Default weight
     }
 
     getWeight() {
-        if (!canvas.isSmartModel) {
-            if (this.isInput) {
-                return this.end.inputArcs.find(a => a.place === this.start)?.weight || 1;
-            } else {
-                return this.start.outputArcs.find(a => a.place === this.end)?.weight || 1;
-            }
-        }
-        return 1;
+        return this.weight;
+    }
+
+    setWeight(w) {
+        this.weight = w;
     }
 
     draw(ctx, iconSize) {
@@ -182,10 +222,11 @@ class Arc {
         const endX = this.end.x;
         const endY = this.end.y;
         const offset = iconSize / 2;
-        const adjStartX = startX + offset * Math.cos(Math.atan2(endY - startY, endX - startX));
-        const adjStartY = startY + offset * Math.sin(Math.atan2(endY - startY, endX - startX));
-        const adjEndX = endX - offset * Math.cos(Math.atan2(endY - startY, endX - startX));
-        const adjEndY = endY - offset * Math.sin(Math.atan2(endY - startY, endX - startX));
+        const angle = Math.atan2(endY - startY, endX - startX);
+        const adjStartX = startX + offset * Math.cos(angle);
+        const adjStartY = startY + offset * Math.sin(angle);
+        const adjEndX = endX - offset * Math.cos(angle);
+        const adjEndY = endY - offset * Math.sin(angle);
 
         ctx.strokeStyle = this.isInput ? "blue" : (this.start instanceof Initializer ? "magenta" : "red");
         if (this.end instanceof Transition && this.end.active) ctx.strokeStyle = "green";
@@ -197,22 +238,34 @@ class Arc {
             ctx.lineTo(adjEndX, adjEndY);
             ctx.stroke();
         } else if (this.type === "flexible") {
-            const midX = (adjStartX + adjEndX) / 2;
-            const midY = (adjStartY + adjEndY) / 2 + Math.abs(adjEndX - adjStartX) / 4; // Flexible curve
+            const cp = this.controlPoints[0];
+            const dist = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
+            cp.y = Math.min(adjStartY, adjEndY) - dist / 4; // Dynamic radius
             ctx.beginPath();
             ctx.moveTo(adjStartX, adjStartY);
-            ctx.quadraticCurveTo(midX, midY, adjEndX, adjEndY);
+            ctx.quadraticCurveTo(cp.x, cp.y, adjEndX, adjEndY);
             ctx.stroke();
+            if (canvas.selected === this) {
+                ctx.fillStyle = "red";
+                ctx.beginPath();
+                ctx.arc(cp.x, cp.y, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
         } else if (this.type === "90degree") {
             ctx.beginPath();
             ctx.moveTo(adjStartX, adjStartY);
-            ctx.lineTo(adjEndX, adjStartY); // Horizontal
-            ctx.lineTo(adjEndX, adjEndY);   // Vertical
+            ctx.lineTo(adjEndX, adjStartY);
+            ctx.lineTo(adjEndX, adjEndY);
             ctx.stroke();
+            if (canvas.selected === this) {
+                ctx.fillStyle = "red";
+                ctx.beginPath();
+                ctx.arc(adjEndX, adjStartY, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
         const arrowSize = 10;
-        const angle = Math.atan2(adjEndY - adjStartY, adjEndX - adjStartX);
         const arrowX = adjEndX;
         const arrowY = adjEndY;
         ctx.beginPath();
@@ -224,7 +277,7 @@ class Arc {
 
         if (!canvas.isSmartModel) {
             const weight = this.getWeight();
-            if (weight > 1) {
+            if (weight > 1 || canvas.selected === this) {
                 const midX = (adjStartX + adjEndX) / 2;
                 const midY = (adjStartY + adjEndY) / 2;
                 ctx.fillStyle = "black";
@@ -258,7 +311,7 @@ class Initializer {
         }
         ctx.drawImage(img, this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
         if (selected) {
-            ctx.fillStyle = "rgba(255, 255, 0, 0.3)"; // Highlight fill
+            ctx.fillStyle = "rgba(255, 255, 0, 0.3)";
             ctx.beginPath();
             ctx.arc(this.x, this.y, iconSize / 2, 0, Math.PI * 2);
             ctx.fill();
@@ -386,7 +439,7 @@ class Annotation {
         if (selected) {
             const width = Math.max(...lines.map(line => ctx.measureText(line).width));
             const height = this.fontSize * lines.length;
-            ctx.fillStyle = "rgba(255, 255, 0, 0.3)"; // Highlight fill
+            ctx.fillStyle = "rgba(255, 255, 0, 0.3)";
             ctx.fillRect(this.x - 5, this.y - this.fontSize - 5, width + 10, height + 10);
         }
     }
