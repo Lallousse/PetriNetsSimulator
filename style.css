@@ -5,53 +5,36 @@ body {
     background-color: #f4f4f4;
 }
 
-#toolbar {
-    height: 60px;
-    background-color: #ffffff;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    border-bottom: 2px solid #e0e0e0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+#right-panel {
     position: fixed;
     top: 0;
-    left: 0;
-    width: 100%;
+    right: 0;
+    width: 60px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
     z-index: 1000;
 }
 
-#toolbarButtons {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    overflow-x: auto;
-    white-space: nowrap;
-}
-
-#zoom-panel {
-    width: 50px;
-    height: 100px; /* Compact height */
-    background-color: #f0f0f0;
+#zoom-tools {
     position: fixed;
-    top: calc(50% - 50px); /* Centered vertically */
-    left: 0;
+    top: calc(50% - 50px);
+    left: 10px;
     display: flex;
     flex-direction: column;
-    justify-content: center; /* Center buttons */
     gap: 10px;
-    padding: 10px;
-    border-right: 2px solid #e0e0e0;
-    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
     z-index: 900;
 }
 
 #petriCanvas {
     position: absolute;
-    top: 60px;
-    left: 50px;
-    width: calc(100% - 50px);
-    height: calc(100% - 90px);
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: calc(100% - 30px); /* Account for status bar */
     background-color: #ffffff;
     z-index: 500;
 }
@@ -59,7 +42,7 @@ body {
 #speedLabel {
     position: fixed;
     top: 10px;
-    right: 10px;
+    left: 70px; /* Adjusted for zoom tools */
     font-size: 14px;
     color: #333;
     background: rgba(255, 255, 255, 0.8);
@@ -79,7 +62,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 15px; /* Increased padding */
+    padding: 0 15px;
     border-top: 1px solid #555;
     z-index: 1000;
 }
@@ -91,63 +74,51 @@ body {
 #modelStatus {
     font-size: 12px;
     font-weight: bold;
-    padding-right: 10px; /* Move inward */
+    padding-right: 10px;
 }
 
-button {
+.tool-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     padding: 0;
     border: none;
-    background: none;
+    background-color: rgba(240, 240, 240, 0.8); /* Light background */
     cursor: pointer;
     transition: background-color 0.2s;
+    border-radius: 4px;
     position: relative;
 }
 
-#zoom-panel button {
-    width: 30px; /* Smaller for zoom panel */
-    height: 30px;
+.tool-btn:hover {
+    background-color: rgba(220, 220, 220, 0.8);
 }
 
-button:hover {
-    background-color: #f0f0f0;
-    border-radius: 4px;
+.tool-btn img {
+    width: 32px;
+    height: 32px;
 }
 
-button img {
-    width: 28px;
-    height: 28px;
-}
-
-#zoom-panel button img {
-    width: 24px; /* Smaller icons */
-    height: 24px;
-}
-
-button:disabled img {
+.tool-btn:disabled img {
     opacity: 0.5;
 }
 
-button.highlighted {
+.tool-btn.highlighted {
     background-color: #ffeb3b;
-    border-radius: 4px;
 }
 
-button.active {
+.tool-btn.active {
     background-color: #add8e6;
-    border-radius: 4px;
 }
 
-button[title]:hover:after {
+.tool-btn[title]:hover:after {
     content: attr(title);
     position: absolute;
-    top: calc(100% + 5px);
-    left: 50%;
-    transform: translateX(-50%);
+    left: -100px; /* Adjusted for right panel */
+    top: 50%;
+    transform: translateY(-50%);
     background-color: #333;
     color: #fff;
     padding: 4px 8px;
@@ -159,20 +130,26 @@ button[title]:hover:after {
 
 .dropdown {
     position: relative;
-    display: inline-block;
 }
 
 .dropdown-content {
-    display: none;
     position: absolute;
+    right: 100%; /* Slide from right */
+    top: 0;
     background-color: #fff;
     min-width: 160px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    z-index: 1200; /* Increased to ensure visibility */
+    z-index: 1200;
     border-radius: 4px;
-    top: 100%;
-    left: 0;
     padding: 10px;
+    transform: translateX(100%);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.dropdown:hover .dropdown-content {
+    transform: translateX(0);
+    opacity: 1;
 }
 
 .dropdown-content button {
@@ -182,6 +159,9 @@ button[title]:hover:after {
     text-align: left;
     border-radius: 4px;
     margin-bottom: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
 }
 
 .dropdown-content button:hover {
@@ -190,6 +170,8 @@ button[title]:hover:after {
 
 .dropdown-content.color-palette {
     min-width: 180px;
+    display: flex;
+    flex-wrap: wrap;
 }
 
 .color-option {
@@ -215,10 +197,6 @@ button[title]:hover:after {
     padding: 5px;
     border: 1px solid #ddd;
     border-radius: 4px;
-}
-
-.dropdown:hover .dropdown-content {
-    display: block;
 }
 
 .modal {
@@ -279,7 +257,7 @@ button[title]:hover:after {
 }
 
 textarea {
-    resize: both; /* Allow resizing */
+    resize: both;
     font-family: 'Monospaced', monospace;
     font-size: 14px;
     border: 1px solid #ddd;
@@ -289,52 +267,18 @@ textarea {
     box-sizing: border-box;
 }
 
-#burgerMenu {
-    display: none;
-    font-size: 24px;
-    cursor: pointer;
-    padding: 10px;
-    z-index: 1100;
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    #toolbar {
-        height: auto;
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 0;
-    }
+td, th {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
 
-    #burgerMenu {
-        display: block;
-    }
-
-    #toolbarButtons {
-        display: none;
-        flex-direction: column;
-        width: 200px;
-        background-color: #ffffff;
-        position: fixed;
-        top: 60px;
-        right: 0;
-        height: calc(100% - 60px);
-        padding: 10px;
-        box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
-        z-index: 1100;
-    }
-
-    #toolbarButtons.active {
-        display: flex;
-    }
-
-    #petriCanvas {
-        left: 0;
-        width: 100%;
-    }
-
-    #zoom-panel {
-        top: calc(50% - 50px);
-        left: 0;
-    }
+th {
+    background-color: #f2f2f2;
 }
