@@ -40,8 +40,8 @@ class PetriNetCanvas {
 
         this.iconSize = 32;
         this.tokenSize = 8;
-        this.stepDelay = 1000; // Balanced for visibility (Adjustment 3)
-        this.animationSpeedBase = 0.01; // Slower but not too slow (Adjustment 3)
+        this.stepDelay = 1000; // Balanced for visibility
+        this.animationSpeedBase = 0.01; // Slower but not too slow
 
         this.icons = {};
         this.undoHistory = [];
@@ -58,10 +58,10 @@ class PetriNetCanvas {
 
     resize() {
         const dpr = window.devicePixelRatio || 1;
-        this.canvas.width = (window.innerWidth - (window.innerWidth <= 768 ? 0 : 50)) * dpr;
-        this.canvas.height = (window.innerHeight - 90) * dpr;
-        this.canvas.style.width = `${window.innerWidth - (window.innerWidth <= 768 ? 0 : 50)}px`;
-        this.canvas.style.height = `${window.innerHeight - 90}px`;
+        this.canvas.width = window.innerWidth * dpr;
+        this.canvas.height = (window.innerHeight - 30) * dpr; // Account for status bar
+        this.canvas.style.width = `${window.innerWidth}px`;
+        this.canvas.style.height = `${window.innerHeight - 30}px`;
         this.ctx.scale(dpr, dpr);
         console.log("Canvas resized to:", this.canvas.width, this.canvas.height);
     }
@@ -123,11 +123,6 @@ class PetriNetCanvas {
         document.getElementById("zoomInBtn").addEventListener("click", () => this.zoomIn());
         document.getElementById("zoomOutBtn").addEventListener("click", () => this.zoomOut());
 
-        document.getElementById("burgerMenu").addEventListener("click", () => {
-            const toolbarButtons = document.getElementById("toolbarButtons");
-            toolbarButtons.classList.toggle("active");
-        });
-
         window.addEventListener("keydown", (e) => {
             if (e.ctrlKey && e.key === "z") this.undo();
             if (e.ctrlKey && e.shiftKey && e.key === "Z") this.redo();
@@ -150,6 +145,14 @@ class PetriNetCanvas {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.save();
         this.ctx.scale(this.zoomLevel, this.zoomLevel);
+
+        console.log("Rendering:", {
+            places: this.places.length,
+            transitions: this.transitions.length,
+            arcs: this.arcs.length,
+            initializers: this.initializers.length,
+            animations: this.animations.length
+        });
 
         this.arcs.forEach(arc => arc.draw(this.ctx, this.iconSize));
         if (this.drawingArc && this.arcStart && this.arcEnd) {
@@ -237,8 +240,8 @@ class PetriNetCanvas {
         if (element instanceof Annotation) {
             input = document.createElement("textarea");
             input.value = element.text;
-            input.style.resize = "both"; // Allow resizing (Adjustment 9)
-            input.style.width = `${element.fontSize * 10}px`; // Initial size
+            input.style.resize = "both";
+            input.style.width = `${element.fontSize * 10}px`;
             input.style.height = `${element.fontSize * element.text.split("\n").length + 20}px`;
         } else {
             input = document.createElement("input");
@@ -251,7 +254,7 @@ class PetriNetCanvas {
             const midX = (element.start.x + element.end.x) / 2;
             const midY = (element.start.y + element.end.y) / 2;
             input.style.left = `${rect.left + (midX * this.zoomLevel) - (this.ctx.measureText(input.value).width / 2)}px`;
-            input.style.top = `${rect.top + (midY * this.zoomLevel) - 10}px`; // Above arc (Adjustment 4)
+            input.style.top = `${rect.top + (midY * this.zoomLevel) - 10}px`;
         } else {
             input.style.left = `${rect.left + (element.x * this.zoomLevel) - (this.ctx.measureText(input.value).width / 2)}px`;
             input.style.top = `${rect.top + (element.y * this.zoomLevel) + (this.iconSize / 2 * this.zoomLevel) + 15}px`;
@@ -283,7 +286,6 @@ class PetriNetCanvas {
                 }
                 this.designState.setUnsavedChanges();
             } else if (element instanceof Initializer) {
-                // Handle initializer settings (Adjustment 5)
                 const settings = newValue.split(",");
                 if (settings.length >= 3) {
                     this.saveStateToUndo();
@@ -310,7 +312,7 @@ class PetriNetCanvas {
                 e.preventDefault();
             }
             if (e.key === "Backspace" || e.key === "Delete") {
-                e.stopPropagation(); // Prevent element deletion (Adjustment 6)
+                e.stopPropagation();
             }
         };
     }
@@ -322,7 +324,7 @@ class PetriNetCanvas {
 
         console.log(`Mouse down at (${x}, ${y}) with mode: ${this.addMode}`);
 
-        if (y < 0 || !this.designExists) return;
+        if (!this.designExists && this.addMode !== "new") return;
 
         const elem = this.getElementAt(x, y);
         const arc = this.getArcAt(x, y);
@@ -540,8 +542,9 @@ class PetriNetCanvas {
     setMode(mode) {
         this.addMode = mode;
         this.drawingArc = mode === "arc";
-        document.querySelectorAll("#toolbarButtons button").forEach(btn => btn.classList.remove("highlighted"));
-        document.getElementById(`${mode}Btn`).classList.add("highlighted");
+        document.querySelectorAll(".tool-btn").forEach(btn => btn.classList.remove("highlighted"));
+        const btn = document.getElementById(`${mode}Btn`);
+        if (btn) btn.classList.add("highlighted");
         console.log(`Mode set to: ${mode}`);
     }
 
@@ -679,11 +682,16 @@ class PetriNetCanvas {
         input.accept = ".json";
         input.onchange = (e) => {
             const file = e.target.files[0];
+            if (!file) {
+                this.updateStatus("No file selected", this.isSmartModel ? "S-Model" : "T-Model");
+                return;
+            }
             const reader = new FileReader();
             reader.onload = (event) => {
                 try {
+                    const jsonData = JSON.parse(event.target.result);
                     this.saveStateToUndo();
-                    Loader.load(this, JSON.parse(event.target.result));
+                    Loader.load(this, jsonData);
                     this.designExists = true;
                     this.designState.currentFileName = file.name;
                     this.updateTitle();
@@ -692,8 +700,12 @@ class PetriNetCanvas {
                     console.log(`Loaded design from ${file.name}`);
                 } catch (ex) {
                     console.error("Failed to load design:", ex);
-                    this.updateStatus("Error loading design", this.isSmartModel ? "S-Model" : "T-Model");
+                    this.updateStatus(`Error loading design: ${ex.message}`, this.isSmartModel ? "S-Model" : "T-Model");
                 }
+            };
+            reader.onerror = (error) => {
+                console.error("File reading error:", error);
+                this.updateStatus("Error reading file", this.isSmartModel ? "S-Model" : "T-Model");
             };
             reader.readAsText(file);
         };
