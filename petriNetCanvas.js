@@ -165,7 +165,7 @@ class PetriNetCanvas {
 
         window.addEventListener("resize", () => this.resize());
         document.querySelectorAll(".close").forEach(close => close.onclick = () => {
-            const modal = close.parentElement.parentElement;
+            const modal = close.closest(".modal");
             if (modal) modal.remove();
         });
     }
@@ -365,7 +365,7 @@ class PetriNetCanvas {
 
         const pinBtn = document.createElement("button");
         pinBtn.textContent = "Pin";
-        pinBtn.className = "modal-btn";
+        pinBtn.className = "modal-btn pin-btn";
         pinBtn.style.padding = "5px 10px";
         pinBtn.onclick = () => {
             modal.style.backgroundColor = "transparent";
@@ -483,12 +483,12 @@ class PetriNetCanvas {
         modal.appendChild(content);
         document.body.appendChild(modal);
 
-        // Draggable functionality
         let offsetX, offsetY;
         header.onmousedown = (e) => {
             if (e.target !== header) return;
-            offsetX = e.clientX - content.offsetLeft;
-            offsetY = e.clientY - content.offsetTop;
+            const rect = content.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
             document.onmousemove = (e) => {
                 content.style.left = `${e.clientX - offsetX}px`;
                 content.style.top = `${e.clientY - offsetY}px`;
@@ -529,16 +529,151 @@ class PetriNetCanvas {
             modal.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
             modal.style.zIndex = "2000";
 
-            const content = this.createModalContent("Petri Net Formal Notation (PN-FN)", [
-                { type: "textarea", id: "pnfnText", value: text, readOnly: true, style: { width: "100%", height: "300px" } },
-                { type: "button", text: "Insert as Note", onClick: () => this.insertPNFNAsNote() },
-                { type: "button", text: "Regenerate All", onClick: () => this.regeneratePNFN(true) },
-                { type: "button", text: "Regenerate M0", onClick: () => this.regeneratePNFN(false) },
-                { type: "button", text: "Pin", className: "pin-btn" }
-            ]);
+            const content = document.createElement("div");
+            content.className = "modal-content";
+            content.style.position = "absolute";
+            content.style.left = "50%";
+            content.style.top = "50%";
+            content.style.transform = "translate(-50%, -50%)";
+            content.style.backgroundColor = "#fff";
+            content.style.padding = "20px";
+            content.style.borderRadius = "8px";
+            content.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
+            content.style.width = "600px";
+            content.style.maxWidth = "90vw";
+            content.style.maxHeight = "80vh";
+            content.style.overflowY = "auto";
+            content.style.resize = "both";
+
+            const header = document.createElement("div");
+            header.style.cursor = "move";
+            header.style.padding = "10px";
+            header.style.backgroundColor = "#f0f0f0";
+            header.style.borderBottom = "1px solid #ddd";
+            header.style.display = "flex";
+            header.style.justifyContent = "space-between";
+            header.style.alignItems = "center";
+
+            const title = document.createElement("h3");
+            title.textContent = "Petri Net Formal Notation (PN-FN)";
+            title.style.margin = "0";
+            title.style.fontSize = "16px";
+
+            const close = document.createElement("span");
+            close.className = "close";
+            close.innerHTML = "×";
+            close.style.fontSize = "20px";
+            close.style.cursor = "pointer";
+            close.onclick = () => content.parentElement.remove();
+
+            header.appendChild(title);
+            header.appendChild(close);
+            content.appendChild(header);
+
+            const textarea = document.createElement("textarea");
+            textarea.id = "pnfnText";
+            textarea.value = text;
+            textarea.readOnly = true;
+            textarea.style.width = "100%";
+            textarea.style.height = "300px";
+            textarea.style.resize = "none";
+            textarea.style.padding = "10px";
+            textarea.style.border = "1px solid #ddd";
+            textarea.style.borderRadius = "4px";
+            textarea.style.font = "12px Monospaced";
+            content.appendChild(textarea);
+
+            const controlPanel = document.createElement("div");
+            controlPanel.style.display = "flex";
+            controlPanel.style.justifyContent = "space-between";
+            controlPanel.style.marginTop = "10px";
+
+            const buttonPanel = document.createElement("div");
+            buttonPanel.style.display = "flex";
+            buttonPanel.style.gap = "10px";
+
+            const insertBtn = document.createElement("button");
+            insertBtn.textContent = "Insert as Note";
+            insertBtn.className = "modal-btn";
+            insertBtn.onclick = () => this.insertPNFNAsNote();
+
+            const regenAllBtn = document.createElement("button");
+            regenAllBtn.textContent = "Reload All";
+            regenAllBtn.className = "modal-btn";
+            regenAllBtn.onclick = () => {
+                const nets = new NetAnalyzer(this).analyze();
+                let newText = "";
+                nets.forEach((net, i) => {
+                    newText += `Net ${i + 1}:\n${net.toFormalNotation(this.isSmartModel)}\n\n`;
+                });
+                textarea.value = newText;
+            };
+
+            const regenM0Btn = document.createElement("button");
+            regenM0Btn.textContent = "Regenerate M₀";
+            regenM0Btn.className = "modal-btn";
+            regenM0Btn.onclick = () => this.regeneratePNFN(false);
+
+            const fontPanel = document.createElement("div");
+            fontPanel.style.display = "flex";
+            fontPanel.style.alignItems = "center";
+            fontPanel.style.gap = "5px";
+
+            const fontLabel = document.createElement("label");
+            fontLabel.textContent = "Font Size:";
+            fontPanel.appendChild(fontLabel);
+
+            const fontSizeSelect = document.createElement("select");
+            [8, 10, 12, 14, 16, 18, 20, 24].forEach(size => {
+                const option = document.createElement("option");
+                option.value = size;
+                option.textContent = size;
+                if (size === 12) option.selected = true;
+                fontSizeSelect.appendChild(option);
+            });
+            fontSizeSelect.onchange = () => {
+                textarea.style.fontSize = `${fontSizeSelect.value}px`;
+            };
+            fontPanel.appendChild(fontSizeSelect);
+
+            const pinBtn = document.createElement("button");
+            pinBtn.textContent = "Pin";
+            pinBtn.className = "modal-btn pin-btn";
+            pinBtn.onclick = () => {
+                modal.style.backgroundColor = "transparent";
+                modal.style.pointerEvents = "none";
+                content.style.pointerEvents = "auto";
+                pinBtn.style.display = "none";
+            };
+
+            buttonPanel.appendChild(regenM0Btn);
+            buttonPanel.appendChild(regenAllBtn);
+            buttonPanel.appendChild(insertBtn);
+            controlPanel.appendChild(buttonPanel);
+            controlPanel.appendChild(fontPanel);
+            controlPanel.appendChild(pinBtn);
+            content.appendChild(controlPanel);
 
             modal.appendChild(content);
             document.body.appendChild(modal);
+
+            let offsetX, offsetY;
+            header.onmousedown = (e) => {
+                if (e.target !== header) return;
+                const rect = content.getBoundingClientRect();
+                offsetX = e.clientX - rect.left;
+                offsetY = e.clientY - rect.top;
+                document.onmousemove = (e) => {
+                    content.style.left = `${e.clientX - offsetX}px`;
+                    content.style.top = `${e.clientY - offsetY}px`;
+                    content.style.transform = "none";
+                };
+                document.onmouseup = () => {
+                    document.onmousemove = null;
+                    document.onmouseup = null;
+                };
+            };
+
             this.updateStatus("PN-FN opened", this.isSmartModel ? "S-Model" : "T-Model");
             console.log("PN-FN modal opened");
         } catch (e) {
@@ -564,6 +699,47 @@ class PetriNetCanvas {
             modal.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
             modal.style.zIndex = "2000";
 
+            const content = document.createElement("div");
+            content.className = "modal-content";
+            content.style.position = "absolute";
+            content.style.left = "50%";
+            content.style.top = "50%";
+            content.style.transform = "translate(-50%, -50%)";
+            content.style.backgroundColor = "#fff";
+            content.style.padding = "20px";
+            content.style.borderRadius = "8px";
+            content.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
+            content.style.width = "600px";
+            content.style.maxWidth = "90vw";
+            content.style.maxHeight = "80vh";
+            content.style.overflowY = "auto";
+            content.style.resize = "both";
+
+            const header = document.createElement("div");
+            header.style.cursor = "move";
+            header.style.padding = "10px";
+            header.style.backgroundColor = "#f0f0f0";
+            header.style.borderBottom = "1px solid #ddd";
+            header.style.display = "flex";
+            header.style.justifyContent = "space-between";
+            header.style.alignItems = "center";
+
+            const title = document.createElement("h3");
+            title.textContent = "Matrix Representation Petri Net (MR-PN)";
+            title.style.margin = "0";
+            title.style.fontSize = "16px";
+
+            const close = document.createElement("span");
+            close.className = "close";
+            close.innerHTML = "×";
+            close.style.fontSize = "20px";
+            close.style.cursor = "pointer";
+            close.onclick = () => content.parentElement.remove();
+
+            header.appendChild(title);
+            header.appendChild(close);
+            content.appendChild(header);
+
             const tableContainer = document.createElement("div");
             tableContainer.id = "mrpnTableContainer";
             tableContainer.style.maxHeight = "300px";
@@ -571,153 +747,147 @@ class PetriNetCanvas {
             tableContainer.style.border = "1px solid #ddd";
             tableContainer.style.padding = "10px";
             tableContainer.style.borderRadius = "4px";
+            tableContainer.style.font = "12px Monospaced";
 
+            let fullText = "";
             nets.forEach((net, netIndex) => {
                 const placeList = Array.from(net.places);
                 const transitionList = Array.from(net.transitions);
                 if (placeList.length === 0 || transitionList.length === 0) {
                     tableContainer.innerHTML += `<p>Net ${netIndex + 1}: No design elements available.</p>`;
+                    fullText += `Net ${netIndex + 1}: No design elements available.\n\n`;
                     return;
                 }
 
-                let inputTable = `<h4>Net ${netIndex + 1} - Input Matrix</h4><table><tr><th></th>`;
-                transitionList.forEach(t => inputTable += `<th>${t.name}</th>`);
-                inputTable += "</tr>";
-                placeList.forEach(p => {
-                    inputTable += `<tr><td>${p.name}</td>`;
-                    transitionList.forEach(t => {
-                        const weight = net.inputFunction.get(`${p.name},${t.name}`) || 0;
-                        const value = this.isSmartModel ? (weight > 0 ? 1 : 0) : weight;
-                        inputTable += `<td>[${value}]</td>`;
-                    });
-                    inputTable += "</tr>";
-                });
-                inputTable += "</table>";
+                const netText = net.toMRPNText(this.isSmartModel);
+                fullText += `Net ${netIndex + 1}:\n${netText}\n\n`;
 
-                let outputTable = `<h4>Net ${netIndex + 1} - Output Matrix</h4><table><tr><th></th>`;
-                transitionList.forEach(t => outputTable += `<th>${t.name}</th>`);
-                outputTable += "</tr>";
-                placeList.forEach(p => {
-                    outputTable += `<tr><td>${p.name}</td>`;
-                    transitionList.forEach(t => {
-                        const weight = net.outputFunction.get(`${p.name},${t.name}`) || 0;
-                        const value = this.isSmartModel ? (weight > 0 ? 1 : 0) : weight;
-                        outputTable += `<td>[${value}]</td>`;
-                    });
-                    outputTable += "</tr>";
-                });
-                outputTable += "</table>";
+                const netLabel = document.createElement("label");
+                netLabel.textContent = `Net ${netIndex + 1}:`;
+                netLabel.style.font = "bold 14px Monospaced";
+                tableContainer.appendChild(netLabel);
 
-                tableContainer.innerHTML += inputTable + outputTable;
+                const pre = document.createElement("pre");
+                pre.textContent = netText;
+                tableContainer.appendChild(pre);
             });
 
-            const content = this.createModalContent("Matrix Representation Petri Net (MR-PN)", [
-                { type: "custom", element: tableContainer },
-                { type: "button", text: "Insert as Note", onClick: () => this.insertMRPNAsNote() },
-                { type: "button", text: "Regenerate All", onClick: () => this.regenerateMRPN(true) },
-                { type: "button", text: "Regenerate M0", onClick: () => this.regenerateMRPN(false) },
-                { type: "button", text: "Pin", className: "pin-btn" }
-            ]);
+            content.appendChild(tableContainer);
+
+            const controlPanel = document.createElement("div");
+            controlPanel.style.display = "flex";
+            controlPanel.style.justifyContent = "space-between";
+            controlPanel.style.marginTop = "10px";
+
+            const buttonPanel = document.createElement("div");
+            buttonPanel.style.display = "flex";
+            buttonPanel.style.gap = "10px";
+
+            const insertBtn = document.createElement("button");
+            insertBtn.textContent = "Insert as Note";
+            insertBtn.className = "modal-btn";
+            insertBtn.onclick = () => {
+                const textOutput = fullText.trim();
+                if (!textOutput) return;
+                this.saveStateToUndo();
+                const { x, y } = this.findAnnotationPosition(textOutput);
+                const annotation = new Annotation(textOutput, x, y, "Times New Roman", parseInt(fontSizeSelect.value));
+                this.annotations.push(annotation);
+                this.designState.setUnsavedChanges();
+                modal.remove();
+                this.updateButtonStates();
+                this.updateStatus("MR-PN inserted as note", this.isSmartModel ? "S-Model" : "T-Model");
+            };
+
+            const regenBtn = document.createElement("button");
+            regenBtn.textContent = "Regenerate";
+            regenBtn.className = "modal-btn";
+            regenBtn.onclick = () => {
+                const nets = new NetAnalyzer(this).analyze();
+                let newText = "";
+                tableContainer.innerHTML = "";
+                nets.forEach((net, netIndex) => {
+                    const netText = net.toMRPNText(this.isSmartModel);
+                    newText += `Net ${netIndex + 1}:\n${netText}\n\n`;
+                    const netLabel = document.createElement("label");
+                    netLabel.textContent = `Net ${netIndex + 1}:`;
+                    netLabel.style.font = "bold 14px Monospaced";
+                    tableContainer.appendChild(netLabel);
+                    const pre = document.createElement("pre");
+                    pre.textContent = netText;
+                    pre.style.fontSize = `${fontSizeSelect.value}px`;
+                    tableContainer.appendChild(pre);
+                });
+                fullText = newText;
+            };
+
+            const fontPanel = document.createElement("div");
+            fontPanel.style.display = "flex";
+            fontPanel.style.alignItems = "center";
+            fontPanel.style.gap = "5px";
+
+            const fontLabel = document.createElement("label");
+            fontLabel.textContent = "Font Size:";
+            fontPanel.appendChild(fontLabel);
+
+            const fontSizeSelect = document.createElement("select");
+            [8, 10, 12, 14, 16, 18, 20, 24].forEach(size => {
+                const option = document.createElement("option");
+                option.value = size;
+                option.textContent = size;
+                if (size === 12) option.selected = true;
+                fontSizeSelect.appendChild(option);
+            });
+            fontSizeSelect.onchange = () => {
+                tableContainer.querySelectorAll("pre").forEach(pre => {
+                    pre.style.fontSize = `${fontSizeSelect.value}px`;
+                });
+            };
+            fontPanel.appendChild(fontSizeSelect);
+
+            const pinBtn = document.createElement("button");
+            pinBtn.textContent = "Pin";
+            pinBtn.className = "modal-btn pin-btn";
+            pinBtn.onclick = () => {
+                modal.style.backgroundColor = "transparent";
+                modal.style.pointerEvents = "none";
+                content.style.pointerEvents = "auto";
+                pinBtn.style.display = "none";
+            };
+
+            buttonPanel.appendChild(regenBtn);
+            buttonPanel.appendChild(insertBtn);
+            controlPanel.appendChild(buttonPanel);
+            controlPanel.appendChild(fontPanel);
+            controlPanel.appendChild(pinBtn);
+            content.appendChild(controlPanel);
 
             modal.appendChild(content);
             document.body.appendChild(modal);
+
+            let offsetX, offsetY;
+            header.onmousedown = (e) => {
+                if (e.target !== header) return;
+                const rect = content.getBoundingClientRect();
+                offsetX = e.clientX - rect.left;
+                offsetY = e.clientY - rect.top;
+                document.onmousemove = (e) => {
+                    content.style.left = `${e.clientX - offsetX}px`;
+                    content.style.top = `${e.clientY - offsetY}px`;
+                    content.style.transform = "none";
+                };
+                document.onmouseup = () => {
+                    document.onmousemove = null;
+                    document.onmouseup = null;
+                };
+            };
+
             this.updateStatus("MR-PN opened", this.isSmartModel ? "S-Model" : "T-Model");
             console.log("MR-PN modal opened");
         } catch (e) {
             console.error("Error in showMRPN:", e);
             this.updateStatus("Error opening MR-PN: " + e.message, this.isSmartModel ? "S-Model" : "T-Model");
         }
-    }
-
-    createModalContent(titleText, elements) {
-        const content = document.createElement("div");
-        content.className = "modal-content";
-        content.style.position = "absolute";
-        content.style.left = "50%";
-        content.style.top = "50%";
-        content.style.transform = "translate(-50%, -50%)";
-        content.style.backgroundColor = "#fff";
-        content.style.padding = "20px";
-        content.style.borderRadius = "8px";
-        content.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
-        content.style.width = "600px";
-        content.style.maxWidth = "90vw";
-        content.style.maxHeight = "80vh";
-        content.style.overflowY = "auto";
-        content.style.resize = "both";
-
-        const header = document.createElement("div");
-        header.style.cursor = "move";
-        header.style.padding = "10px";
-        header.style.backgroundColor = "#f0f0f0";
-        header.style.borderBottom = "1px solid #ddd";
-        header.style.display = "flex";
-        header.style.justifyContent = "space-between";
-        header.style.alignItems = "center";
-
-        const title = document.createElement("h3");
-        title.textContent = titleText;
-        title.style.margin = "0";
-        title.style.fontSize = "16px";
-
-        const close = document.createElement("span");
-        close.className = "close";
-        close.innerHTML = "×";
-        close.style.fontSize = "20px";
-        close.style.cursor = "pointer";
-        close.onclick = () => content.parentElement.remove();
-
-        header.appendChild(title);
-        header.appendChild(close);
-        content.appendChild(header);
-
-        elements.forEach(elem => {
-            if (elem.type === "textarea") {
-                const textarea = document.createElement("textarea");
-                textarea.id = elem.id;
-                textarea.value = elem.value || "";
-                if (elem.readOnly) textarea.readOnly = true;
-                Object.assign(textarea.style, elem.style);
-                content.appendChild(textarea);
-            } else if (elem.type === "button") {
-                const button = document.createElement("button");
-                button.textContent = elem.text;
-                button.className = `modal-btn ${elem.className || ""}`;
-                button.style.padding = "8px 16px";
-                if (elem.onClick) button.onclick = elem.onClick;
-                if (elem.className === "pin-btn") {
-                    button.onclick = () => {
-                        const modal = content.parentElement;
-                        modal.style.backgroundColor = "transparent";
-                        modal.style.pointerEvents = "none";
-                        content.style.pointerEvents = "auto";
-                        button.style.display = "none";
-                    };
-                }
-                content.appendChild(button);
-            } else if (elem.type === "custom") {
-                content.appendChild(elem.element);
-            }
-        });
-
-        // Draggable functionality
-        let offsetX, offsetY;
-        header.onmousedown = (e) => {
-            if (e.target !== header) return;
-            offsetX = e.clientX - content.offsetLeft;
-            offsetY = e.clientY - content.offsetTop;
-            document.onmousemove = (e) => {
-                content.style.left = `${e.clientX - offsetX}px`;
-                content.style.top = `${e.clientY - offsetY}px`;
-                content.style.transform = "none";
-            };
-            document.onmouseup = () => {
-                document.onmousemove = null;
-                document.onmouseup = null;
-            };
-        };
-
-        return content;
     }
 
     handleMouseDown(e) {
@@ -729,8 +899,8 @@ class PetriNetCanvas {
 
         if (!this.designExists && this.addMode !== "new") return;
 
-        const elem = this.getElementAt(x, y);
         const arc = this.getArcAt(x, y);
+        const elem = this.getElementAt(x, y);
         const annotation = this.getAnnotationAt(x, y);
 
         if (this.handMode) {
@@ -745,28 +915,29 @@ class PetriNetCanvas {
             this.drawingArc = true;
             console.log("Started drawing arc");
         } else if (this.addMode === "select") {
-            if (arc && this.isNearControlPoint(x, y, arc)) {
-                this.selected = arc;
-                this.draggingControlPoint = true;
-            } else if (arc) {
+            if (arc) {
                 if (!e.ctrlKey) this.selectedElements = [];
                 this.selectedElements.push(arc);
                 this.selected = arc;
+                console.log("Selected arc");
             } else if (annotation) {
                 if (!e.ctrlKey) this.selectedElements = [];
                 this.selectedElements.push(annotation);
                 this.selected = annotation;
+                console.log("Selected annotation");
             } else if (elem) {
                 if (!this.selectedElements.includes(elem)) {
                     if (!e.ctrlKey) this.selectedElements = [];
                     this.selectedElements.push(elem);
                 }
                 this.selected = elem;
+                console.log("Selected element:", elem.name);
             } else {
                 this.selected = null;
                 this.selectionStart = new Point(x, y);
                 this.selectionArea = { x, y, width: 0, height: 0 };
                 if (!e.ctrlKey) this.selectedElements = [];
+                console.log("Started selection area");
             }
         } else if (this.addMode === "place") {
             this.saveStateToUndo();
@@ -928,54 +1099,47 @@ class PetriNetCanvas {
     }
 
     handleClick(e) {
-        if (!this.editingElement || (this.editingElement instanceof Place || this.editingElement instanceof Transition || this.editingElement instanceof Initializer || this.editingElement instanceof Arc)) return;
         const rect = this.canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) / this.zoomLevel;
         const y = (e.clientY - rect.top) / this.zoomLevel;
-        const elem = this.getElementAt(x, y);
-        const arc = this.getArcAt(x, y);
-        const annotation = this.getAnnotationAt(x, y);
 
-        if (!(elem === this.editingElement || arc === this.editingElement || annotation === this.editingElement)) {
-            this.finishEditing(true);
+        if (this.editingElement && this.editingElement instanceof Annotation) {
+            const elem = this.getElementAt(x, y);
+            const arc = this.getArcAt(x, y);
+            const annotation = this.getAnnotationAt(x, y);
+            if (!(elem === this.editingElement || arc === this.editingElement || annotation === this.editingElement)) {
+                this.finishEditing(true);
+            }
         }
     }
 
     finishEditing(save) {
-        // Handled in drawEditing or showEditModal
+        // Handled in drawEditing
     }
 
     newDesign() {
         if (this.designState.hasUnsavedChanges() && this.designState.hasDesign()) {
             if (!confirm("You have unsaved changes. Create a new design anyway?")) return;
         }
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = ".json";
-        input.style.display = "none";
-        input.onchange = (e) => {
-            const file = e.target.files[0];
-            this.designState.currentFileName = file ? file.name : "Untitled.json";
-            this.saveStateToUndo();
-            this.places = [];
-            this.transitions = [];
-            this.arcs = [];
-            this.initializers = [];
-            this.annotations = [];
-            this.animations = [];
-            this.selectedElements = [];
-            this.selected = null;
-            this.addMode = "select";
-            this.handMode = false;
-            this.drawingArc = false;
-            this.designExists = true;
-            this.designState.newDesign(this.designState.currentFileName);
-            this.updateTitle();
-            this.updateButtonStates();
-            this.updateStatus("New design created", this.isSmartModel ? "S-Model" : "T-Model");
-            console.log("New design created with file:", this.designState.currentFileName);
-        };
-        input.click();
+        this.designState.currentFileName = "Untitled.json";
+        this.saveStateToUndo();
+        this.places = [];
+        this.transitions = [];
+        this.arcs = [];
+        this.initializers = [];
+        this.annotations = [];
+        this.animations = [];
+        this.selectedElements = [];
+        this.selected = null;
+        this.addMode = "select";
+        this.handMode = false;
+        this.drawingArc = false;
+        this.designExists = true;
+        this.designState.newDesign(this.designState.currentFileName);
+        this.updateTitle();
+        this.updateButtonStates();
+        this.updateStatus("New design created", this.isSmartModel ? "S-Model" : "T-Model");
+        console.log("New design created with file:", this.designState.currentFileName);
     }
 
     setMode(mode) {
@@ -1209,7 +1373,8 @@ class PetriNetCanvas {
         if (!pnfnText) return;
         this.saveStateToUndo();
         const { x, y } = this.findAnnotationPosition(pnfnText);
-        this.annotations.push(new Annotation(pnfnText, x, y, "Times New Roman", 12));
+        const fontSize = parseInt(document.querySelector("#pnfnModal select")?.value || 12);
+        this.annotations.push(new Annotation(pnfnText, x, y, "Times New Roman", fontSize));
         const modal = document.getElementById("pnfnModal");
         if (modal) document.body.removeChild(modal);
         this.designState.setUnsavedChanges();
@@ -1219,18 +1384,7 @@ class PetriNetCanvas {
     }
 
     insertMRPNAsNote() {
-        const tableContainer = document.getElementById("mrpnTableContainer");
-        const text = tableContainer.innerText;
-        if (!text) return;
-        this.saveStateToUndo();
-        const { x, y } = this.findAnnotationPosition(text);
-        this.annotations.push(new Annotation(text, x, y, "Times New Roman", 12));
-        const modal = document.getElementById("mrpnModal");
-        if (modal) document.body.removeChild(modal);
-        this.designState.setUnsavedChanges();
-        this.updateButtonStates();
-        this.updateStatus("MR-PN inserted as note", this.isSmartModel ? "S-Model" : "T-Model");
-        console.log("Inserted MR-PN as note");
+        // Handled in showMRPN
     }
 
     regeneratePNFN(all) {
@@ -1415,8 +1569,6 @@ class PetriNetCanvas {
             const startY = arc.start.y;
             const endX = arc.end.x;
             const endY = arc.end.y;
-            const midX = (startX + endX) / 2;
-            const midY = (startY + endY) / 2;
             const dx = endX - startX;
             const dy = endY - startY;
             const length = Math.sqrt(dx * dx + dy * dy);
@@ -1424,9 +1576,9 @@ class PetriNetCanvas {
             const unitY = dy / length;
             const perpX = -unitY;
             const perpY = unitX;
-            const dist = Math.abs(perpX * (x - midX) + perpY * (y - midY));
-            const along = unitX * (x - midX) + unitY * (y - midY);
-            if (dist < 10 && Math.abs(along) <= length / 2) return arc;
+            const t = ((x - startX) * unitX + (y - startY) * unitY);
+            const dist = Math.abs((x - startX) * perpX + (y - startY) * perpY);
+            if (dist < 10 && t >= 0 && t <= length) return arc;
         }
         return null;
     }
@@ -1742,6 +1894,31 @@ class PetriNetCanvas {
         e.preventDefault();
         if (e.deltaY < 0) this.zoomIn();
         else this.zoomOut();
+    }
+
+    newDesign() {
+        if (this.designState.hasUnsavedChanges() && this.designState.hasDesign()) {
+            if (!confirm("You have unsaved changes. Create a new design anyway?")) return;
+        }
+        this.designState.currentFileName = "Untitled.json";
+        this.saveStateToUndo();
+        this.places = [];
+        this.transitions = [];
+        this.arcs = [];
+        this.initializers = [];
+        this.annotations = [];
+        this.animations = [];
+        this.selectedElements = [];
+        this.selected = null;
+        this.addMode = "select";
+        this.handMode = false;
+        this.drawingArc = false;
+        this.designExists = true;
+        this.designState.newDesign(this.designState.currentFileName);
+        this.updateTitle();
+        this.updateButtonStates();
+        this.updateStatus("New design created", this.isSmartModel ? "S-Model" : "T-Model");
+        console.log("New design created with file:", this.designState.currentFileName);
     }
 }
 
