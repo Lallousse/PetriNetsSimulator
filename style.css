@@ -5,27 +5,33 @@ body {
     background-color: #f4f4f4;
 }
 
-#right-panel {
+#left-panel, #right-panel {
     position: fixed;
-    top: 0;
-    right: 0;
-    width: 60px;
+    width: 50px;
     height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     padding: 10px 0;
     z-index: 1000;
 }
 
+#left-panel {
+    left: 0;
+}
+
+#right-panel {
+    right: 0;
+}
+
 #zoom-tools {
     position: fixed;
-    top: calc(50% - 50px);
-    left: 10px;
+    top: calc(50% - 48px);
+    left: 60px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     z-index: 900;
 }
 
@@ -34,7 +40,7 @@ body {
     top: 0;
     left: 0;
     width: 100%;
-    height: calc(100% - 30px); /* Account for status bar */
+    height: calc(100% - 30px);
     background-color: #ffffff;
     z-index: 500;
 }
@@ -42,7 +48,7 @@ body {
 #speedLabel {
     position: fixed;
     top: 10px;
-    left: 70px; /* Adjusted for zoom tools */
+    left: 120px;
     font-size: 14px;
     color: #333;
     background: rgba(255, 255, 255, 0.8);
@@ -62,7 +68,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 15px;
+    padding: 0 20px;
     border-top: 1px solid #555;
     z-index: 1000;
 }
@@ -74,18 +80,18 @@ body {
 #modelStatus {
     font-size: 12px;
     font-weight: bold;
-    padding-right: 10px;
+    padding-right: 20px; /* Increased padding */
 }
 
 .tool-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     padding: 0;
     border: none;
-    background-color: rgba(240, 240, 240, 0.8); /* Light background */
+    background-color: rgba(240, 240, 240, 0.8);
     cursor: pointer;
     transition: background-color 0.2s;
     border-radius: 4px;
@@ -97,8 +103,8 @@ body {
 }
 
 .tool-btn img {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
 }
 
 .tool-btn:disabled img {
@@ -113,10 +119,26 @@ body {
     background-color: #add8e6;
 }
 
-.tool-btn[title]:hover:after {
+#left-panel .tool-btn[title]:hover:after,
+#zoom-tools .tool-btn[title]:hover:after {
     content: attr(title);
     position: absolute;
-    left: -100px; /* Adjusted for right panel */
+    left: 45px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: #333;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1100;
+}
+
+#right-panel .tool-btn[title]:hover:after {
+    content: attr(title);
+    position: absolute;
+    right: 45px;
     top: 50%;
     transform: translateY(-50%);
     background-color: #333;
@@ -134,7 +156,7 @@ body {
 
 .dropdown-content {
     position: absolute;
-    right: 100%; /* Slide from right */
+    right: 100%;
     top: 0;
     background-color: #fff;
     min-width: 160px;

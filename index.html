@@ -7,23 +7,19 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="left-panel">
+        <button id="placeBtn" class="tool-btn" title="Place"><img src="assets/place.png" alt="Place"></button>
+        <button id="transitionBtn" class="tool-btn" title="Transition"><img src="assets/transition.png" alt="Transition"></button>
+        <button id="arcBtn" class="tool-btn" title="Arc"><img src="assets/arc.png" alt="Arc"></button>
+        <button id="iniBtn" class="tool-btn" title="Initializer"><img src="assets/ini.png" alt="Initializer"></button>
+        <button id="plusTokenBtn" class="tool-btn" title="+Token"><img src="assets/plus.png" alt="+Token"></button>
+        <button id="minusTokenBtn" class="tool-btn" title="-Token"><img src="assets/minus.png" alt="-Token"></button>
+        <button id="annotateBtn" class="tool-btn" title="Annotate"><img src="assets/note.png" alt="Annotate"></button>
+    </div>
     <div id="right-panel">
         <button id="newBtn" class="tool-btn" title="New"><img src="assets/new.png" alt="New"></button>
         <button id="selectBtn" class="tool-btn" title="Select"><img src="assets/select.png" alt="Select"></button>
-        <button id="placeBtn" class="tool-btn" title="Place"><img src="assets/place.png" alt="Place"></button>
-        <button id="transitionBtn" class="tool-btn" title="Transition"><img src="assets/transition.png" alt="Transition"></button>
-        <button id="iniBtn" class="tool-btn" title="Initializer"><img src="assets/ini.png" alt="Initializer"></button>
-        <div class="dropdown">
-            <button id="arcBtn" class="tool-btn" title="Arc"><img src="assets/arc.png" alt="Arc"></button>
-            <div class="dropdown-content" id="arcDropdown">
-                <button onclick="window.canvas.setArcType('line')">Line</button>
-                <button onclick="window.canvas.setArcType('flexible')">Flexible Arc</button>
-                <button onclick="window.canvas.setArcType('90degree')">90-Degree Line</button>
-            </div>
-        </div>
         <button id="deleteBtn" class="tool-btn" title="Delete"><img src="assets/delete.png" alt="Delete"></button>
-        <button id="plusTokenBtn" class="tool-btn" title="+Token"><img src="assets/plus.png" alt="+Token"></button>
-        <button id="minusTokenBtn" class="tool-btn" title="-Token"><img src="assets/minus.png" alt="-Token"></button>
         <button id="playPauseBtn" class="tool-btn" title="Play/Pause"><img src="assets/play.png" alt="Play/Pause"></button>
         <button id="resetBtn" class="tool-btn" title="Reset"><img src="assets/reset.png" alt="Reset"></button>
         <button id="snapBtn" class="tool-btn" title="Snap"><img src="assets/snap.png" alt="Snap"></button>
@@ -33,7 +29,8 @@
         <button id="clearBtn" class="tool-btn" title="Clear"><img src="assets/clear.png" alt="Clear"></button>
         <button id="switchBtn" class="tool-btn" title="Switch Model"><img src="assets/switch.png" alt="Switch"></button>
         <button id="guideBtn" class="tool-btn" title="Guide"><img src="assets/guide.png" alt="Guide"></button>
-        <button id="annotateBtn" class="tool-btn" title="Annotate"><img src="assets/note.png" alt="Annotate"></button>
+        <button id="pnfnBtn" class="tool-btn" title="PN-FN"><img src="assets/pnfn.png" alt="PN-FN"></button>
+        <button id="mrpnBtn" class="tool-btn" title="MR-PN"><img src="assets/mrpn.png" alt="MR-PN"></button>
         <div class="dropdown">
             <button id="colorBtn" class="tool-btn" title="Color"><img src="assets/color.png" alt="Color"></button>
             <div class="dropdown-content" id="colorDropdown">
@@ -68,8 +65,6 @@
                 </select>
             </div>
         </div>
-        <button id="pnfnBtn" class="tool-btn" title="PN-FN"><img src="assets/pnfn.png" alt="PN-FN"></button>
-        <button id="mrpnBtn" class="tool-btn" title="MR-PN"><img src="assets/mrpn.png" alt="MR-PN"></button>
     </div>
     <div id="zoom-tools">
         <button id="zoomInBtn" class="tool-btn" title="Zoom In"><img src="assets/zin.png" alt="Zoom In"></button>
@@ -112,6 +107,7 @@
     <script src="utils.js"></script>
     <script src="elements.js"></script>
     <script src="core.js"></script>
+    <script src="designLoader.js"></script>
     <script src="petriNetCanvas.js"></script>
 </body>
 </html>

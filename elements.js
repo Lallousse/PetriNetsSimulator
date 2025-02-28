@@ -47,7 +47,7 @@ class Place {
 
         ctx.fillStyle = "black";
         const radius = iconSize / 2 - 4;
-        tokenSize = 6; // Reduced size for first 4 tokens (Adjustment 4)
+        tokenSize = 6;
         if (this.tokens === 1) {
             ctx.beginPath();
             ctx.arc(this.x, this.y, tokenSize / 2, 0, Math.PI * 2);
@@ -102,7 +102,6 @@ class Place {
     }
 }
 
-// Transition class (unchanged except for reference)
 class Transition {
     constructor(name, x, y) {
         this.name = name;
@@ -111,8 +110,11 @@ class Transition {
         this.inputArcs = [];
         this.outputArcs = [];
         this.active = false;
-        this.pendingTokens = 0;
-        this.task = new TransitionTask("gate");
+        this.task = new TransitionTask(""); // Default empty task
+        this.tokenOrder = ""; // String of place names
+        this.passOnTrue = true;
+        this.passOnFalse = false;
+        this.passPreviousValue = false;
     }
 
     isEnabled() {
@@ -126,59 +128,51 @@ class Transition {
     fire(animations) {
         if (this.isEnabled() && !this.active) {
             this.active = true;
-            this.pendingTokens = 0;
             this.inputArcs.forEach(a => {
                 for (let i = 0; i < a.weight; i++) {
                     if (a.place.tokens > 0) {
+                        a.place.removeToken();
                         animations.push(new TokenAnimation(a.place.x, a.place.y, this.x, this.y, null, a.place));
-                        this.pendingTokens++;
                     }
                 }
             });
+            this.outputArcs.forEach(a => {
+                for (let i = 0; i < a.weight; i++) {
+                    animations.push(new TokenAnimation(this.x, this.y, a.place.x, a.place.y, a.place));
+                }
+            });
+            this.active = false;
         }
     }
 
     fireSmart(animations) {
         if (this.isEnabledSmart() && !this.active) {
             this.active = true;
-            this.pendingTokens = 0;
-            this.inputArcs.forEach(a => {
-                if (a.place.tokens > 0) {
-                    const token = new SmartToken(a.place.getTokenValue());
-                    animations.push(new TokenAnimation(a.place.x, a.place.y, this.x, this.y, null, a.place, token));
-                    this.pendingTokens++;
+            const inputTokens = [];
+            const order = this.tokenOrder ? this.tokenOrder.split(",").map(name => name.trim()) : [];
+            const orderedPlaces = order.length > 0 ? 
+                order.map(name => this.inputArcs.find(a => a.place.name === name)?.place) :
+                this.inputArcs.map(a => a.place);
+            orderedPlaces.forEach(place => {
+                if (place && place.tokens > 0) {
+                    inputTokens.push(new SmartToken(place.getTokenValue()));
+                    place.removeToken();
+                    animations.push(new TokenAnimation(place.x, place.y, this.x, this.y, null, place));
                 }
             });
-        }
-    }
-
-    completeFiring(animations) {
-        this.pendingTokens--;
-        if (this.pendingTokens <= 0 && this.active) {
-            this.active = false;
-            setTimeout(() => {
-                this.outputArcs.forEach(a => {
-                    for (let i = 0; i < a.weight; i++) {
-                        animations.push(new TokenAnimation(this.x, this.y, a.place.x, a.place.y, a.place));
-                    }
-                });
-            }, 2000); // Slower for visibility (Adjustment 2)
-        }
-    }
-
-    completeFiringSmart(animations, inputToken) {
-        this.pendingTokens--;
-        if (this.pendingTokens <= 0 && this.active) {
-            this.active = false;
-            const result = this.task.execute([inputToken]);
-            if (result && this.outputArcs.length > 0) {
-                const delay = this.task.getPauseDuration();
-                setTimeout(() => {
+            const result = this.task.execute(inputTokens);
+            if (result) {
+                if (this.passOnTrue) {
                     this.outputArcs.forEach(a => {
                         animations.push(new TokenAnimation(this.x, this.y, a.place.x, a.place.y, a.place, null, result));
                     });
-                }, delay > 0 ? delay : 2000); // Slower (Adjustment 2)
+                }
+            } else if (this.passOnFalse && inputTokens.length > 0) {
+                this.outputArcs.forEach(a => {
+                    animations.push(new TokenAnimation(this.x, this.y, a.place.x, a.place.y, a.place, null, inputTokens[0]));
+                });
             }
+            this.active = false;
         }
     }
 
@@ -198,14 +192,13 @@ class Transition {
     }
 }
 
-// Arc class (unchanged except for reference)
 class Arc {
-    constructor(start, end, isInput, type = "line") {
+    constructor(start, end, isInput) {
         this.start = start;
         this.end = end;
         this.isInput = isInput;
-        this.type = type;
-        this.controlPoints = this.type === "flexible" ? [{ x: (start.x + end.x) / 2, y: (start.y + end.y) / 2 }] : [];
+        this.type = "line"; // Fixed to line only
+        this.controlPoints = [];
         this.weight = 1;
     }
 
@@ -233,38 +226,10 @@ class Arc {
         if (this.end instanceof Transition && this.end.active) ctx.strokeStyle = "green";
         ctx.lineWidth = 2;
 
-        if (this.type === "line") {
-            ctx.beginPath();
-            ctx.moveTo(adjStartX, adjStartY);
-            ctx.lineTo(adjEndX, adjEndY);
-            ctx.stroke();
-        } else if (this.type === "flexible") {
-            const cp = this.controlPoints[0];
-            const dist = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
-            cp.y = Math.min(adjStartY, adjEndY) - dist / 4;
-            ctx.beginPath();
-            ctx.moveTo(adjStartX, adjStartY);
-            ctx.quadraticCurveTo(cp.x, cp.y, adjEndX, adjEndY);
-            ctx.stroke();
-            if (canvas.selected === this) {
-                ctx.fillStyle = "red";
-                ctx.beginPath();
-                ctx.arc(cp.x, cp.y, 5, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        } else if (this.type === "90degree") {
-            ctx.beginPath();
-            ctx.moveTo(adjStartX, adjStartY);
-            ctx.lineTo(adjEndX, adjStartY);
-            ctx.lineTo(adjEndX, adjEndY);
-            ctx.stroke();
-            if (canvas.selected === this) {
-                ctx.fillStyle = "red";
-                ctx.beginPath();
-                ctx.arc(adjEndX, adjStartY, 5, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
+        ctx.beginPath();
+        ctx.moveTo(adjStartX, adjStartY);
+        ctx.lineTo(adjEndX, adjEndY);
+        ctx.stroke();
 
         const arrowSize = 10;
         const arrowX = adjEndX;
@@ -288,7 +253,6 @@ class Arc {
     }
 }
 
-// Initializer class (unchanged)
 class Initializer {
     constructor(name, x, y, tokensToGenerate = 0, tokensPerSecond = 1.0, isContinuous = false, tokenValue = 0) {
         this.name = name;
@@ -322,7 +286,6 @@ class Initializer {
     }
 }
 
-// Point class (unchanged)
 class Point {
     constructor(x, y) {
         this.x = x;
@@ -330,25 +293,19 @@ class Point {
     }
 }
 
-// SmartToken class (unchanged)
 class SmartToken {
     constructor(value) {
         this.value = value;
     }
 }
 
-// TransitionTask class (unchanged)
 class TransitionTask {
     constructor(task) {
-        this.task = task || "gate";
+        this.task = task || "";
     }
 
     execute(inputTokens) {
-        if (this.task === "gate") {
-            return inputTokens.length > 0 ? new SmartToken(inputTokens[0].value) : null;
-        }
-        if (inputTokens.length === 0) return null;
-
+        if (!this.task || inputTokens.length === 0) return null;
         switch (this.task) {
             case "+":
                 return new SmartToken(inputTokens.reduce((sum, t) => sum + t.value, 0));
@@ -360,6 +317,8 @@ class TransitionTask {
             case "/":
                 if (inputTokens.length < 2 || inputTokens[1].value === 0) return null;
                 return new SmartToken(inputTokens[0].value / inputTokens[1].value);
+            case "cp":
+                return inputTokens.length > 0 ? new SmartToken(inputTokens[0].value) : null;
             default:
                 if (this.task.startsWith("!=")) {
                     const compareValue = parseFloat(this.task.substring(2).trim());
@@ -367,8 +326,6 @@ class TransitionTask {
                 } else if (this.task.startsWith("==")) {
                     const compareValue = parseFloat(this.task.substring(2).trim());
                     return new SmartToken(inputTokens[0].value === compareValue ? 1 : 0);
-                } else if (this.task === "cp") {
-                    return new SmartToken(inputTokens[0].value);
                 } else if (this.task.startsWith("p ")) {
                     return new SmartToken(inputTokens[0].value);
                 }
@@ -384,7 +341,6 @@ class TransitionTask {
     }
 }
 
-// TokenAnimation class (unchanged)
 class TokenAnimation {
     constructor(startX, startY, endX, endY, targetPlace, sourcePlace = null, smartToken = null) {
         this.startX = startX;
@@ -417,7 +373,6 @@ class TokenAnimation {
     }
 }
 
-// Annotation class (unchanged)
 class Annotation {
     constructor(text, x, y, fontName = "Arial", fontSize = 12, color = "black", strokeWeight = 1) {
         this.text = text;
