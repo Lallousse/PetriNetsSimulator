@@ -15,6 +15,8 @@ body {
     gap: 10px;
     padding: 10px 0;
     z-index: 1000;
+    background-color: #f4f4f4; /* Ensure visibility on resize */
+    transition: width 0.3s ease; /* Smooth transition for resizing */
 }
 
 #left-panel {
@@ -109,12 +111,10 @@ body {
     background-color: #add8e6;
 }
 
-#left-panel .tool-btn[title]:hover:after {
+#left-panel .tool-btn[title]:hover:after,
+#right-panel .tool-btn[title]:hover:after {
     content: attr(title);
     position: absolute;
-    left: 45px;
-    top: 50%;
-    transform: translateY(-50%);
     background-color: #333;
     color: #fff;
     padding: 4px 8px;
@@ -124,19 +124,105 @@ body {
     z-index: 1100;
 }
 
+#left-panel .tool-btn[title]:hover:after {
+    left: 45px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
 #right-panel .tool-btn[title]:hover:after {
-    content: attr(title);
-    position: absolute;
     right: 45px;
     top: 50%;
     transform: translateY(-50%);
-    background-color: #333;
-    color: #fff;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    white-space: nowrap;
-    z-index: 1100;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    #left-panel, #right-panel {
+        width: 40px; /* Slightly smaller for narrow screens */
+        gap: 5px;
+        padding: 5px 0;
+    }
+
+    .tool-btn {
+        width: 30px;
+        height: 30px;
+    }
+
+    .tool-btn img {
+        width: 24px;
+        height: 24px;
+    }
+
+    #speedLabel {
+        left: 50px; /* Adjust to avoid overlap */
+        font-size: 12px;
+    }
+
+    #statusBar {
+        padding: 0 10px; /* Reduce padding */
+        font-size: 10px;
+    }
+
+    #modelStatus {
+        padding-right: 10px;
+    }
+
+    #left-panel .tool-btn[title]:hover:after,
+    #right-panel .tool-btn[title]:hover:after {
+        font-size: 10px;
+        padding: 2px 4px;
+    }
+}
+
+@media (max-width: 400px) {
+    #left-panel {
+        flex-direction: row;
+        width: 100%;
+        height: 40px;
+        top: 0;
+        left: 0;
+        padding: 5px;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    #right-panel {
+        flex-direction: row;
+        width: 100%;
+        height: 40px;
+        bottom: 30px; /* Above status bar */
+        right: 0;
+        padding: 5px;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    #petriCanvas {
+        top: 40px; /* Below left panel */
+        height: calc(100% - 70px); /* Adjust for both panels and status bar */
+    }
+
+    #speedLabel {
+        top: 45px;
+        left: 10px;
+    }
+
+    #statusBar {
+        height: 30px;
+    }
+
+    #left-panel .tool-btn[title]:hover:after {
+        left: auto;
+        top: 35px;
+        transform: none;
+    }
+
+    #right-panel .tool-btn[title]:hover:after {
+        right: auto;
+        top: -25px;
+        transform: none;
+    }
 }
 
 .dropdown {
@@ -226,11 +312,11 @@ body {
 
 .modal-content {
     background-color: white;
-    margin: 0 auto; /* Remove auto margin for dragging */
+    margin: 0 auto;
     padding: 20px;
     border-radius: 8px;
     width: 80%;
-    max-width: 600px; /* Consistent width */
+    max-width: 600px;
     max-height: 80vh;
     overflow-y: auto;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -241,7 +327,7 @@ body {
 .modal-buttons {
     margin-top: 10px;
     display: flex;
-    gap: 10px; /* Consistent spacing */
+    gap: 10px;
     justify-content: flex-start;
     align-items: center;
 }
@@ -315,7 +401,7 @@ th {
     background-color: #4CAF50;
     color: white;
     border: none;
-    padding: 8px 16px; /* Consistent padding */
+    padding: 8px 16px;
 }
 
 .modal-btn.save-btn:hover {

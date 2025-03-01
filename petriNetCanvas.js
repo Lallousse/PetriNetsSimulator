@@ -113,6 +113,7 @@ class PetriNetCanvas {
     }
 
     initEventListeners() {
+        // Mouse events
         this.canvas.addEventListener("mousedown", (e) => this.handleMouseDown(e));
         this.canvas.addEventListener("mouseup", (e) => this.handleMouseUp(e));
         this.canvas.addEventListener("mousemove", (e) => this.handleMouseMove(e));
@@ -120,6 +121,24 @@ class PetriNetCanvas {
         this.canvas.addEventListener("wheel", (e) => this.handleWheel(e));
         this.canvas.addEventListener("click", (e) => this.handleClick(e));
 
+        // Touch events
+        this.canvas.addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            this.handleMouseDown({ clientX: touch.clientX, clientY: touch.clientY });
+        }, { passive: false });
+        this.canvas.addEventListener("touchmove", (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            this.handleMouseMove({ clientX: touch.clientX, clientY: touch.clientY, buttons: 1 });
+        }, { passive: false });
+        this.canvas.addEventListener("touchend", (e) => {
+            e.preventDefault();
+            const touch = e.changedTouches[0];
+            this.handleMouseUp({ clientX: touch.clientX, clientY: touch.clientY });
+        }, { passive: false });
+
+        // Button events
         document.getElementById("newBtn").addEventListener("click", () => this.newDesign());
         document.getElementById("selectBtn").addEventListener("click", () => this.setMode("select"));
         document.getElementById("handBtn").addEventListener("click", () => this.setMode("hand"));
