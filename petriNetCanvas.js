@@ -1612,9 +1612,23 @@ class PetriNetCanvas {
             - No task: Acts as a gate, forwards token as-is.<br><br>
             <b>Traditional Model (T-Model) Notes:</b><br>
             - Input arc weights: Number of tokens required to enable transition.<br>
-            - Output arc weights: Number of tokens produced per firing to output places.<br>
+            - Output arc weights: Number of tokens produced per firing to output places.<br><br>
+            <b>Basic Tools Tutorial:</b><br>
+            - <img src="assets/new.png" alt="New" style="width:16px;height:16px;vertical-align:middle"> <b>New Design</b>: Click to start a fresh Petri net.<br>
+            - <img src="assets/place.png" alt="Place" style="width:16px;height:16px;vertical-align:middle"> <b>Add Place</b>: Select, then click on the canvas to add a place.<br>
+            - <img src="assets/transition.png" alt="Transition" style="width:16px;height:16px;vertical-align:middle"> <b>Add Transition</b>: Select, then click to add a transition.<br>
+            - <img src="assets/arc.png" alt="Arc" style="width:16px;height:16px;vertical-align:middle"> <b>Draw Arc</b>: Select, click a place/transition, then another to connect.<br>
+            - <img src="assets/plus.png" alt="Plus" style="width:16px;height:16px;vertical-align:middle"> <b>Add Tokens</b>: Select a place, click to add tokens.<br>
+            - <img src="assets/minus.png" alt="Minus" style="width:16px;height:16px;vertical-align:middle"> <b>Remove Tokens</b>: Select a place, click to remove tokens.<br>
+            - <img src="assets/play.png" alt="Play" style="width:16px;height:16px;vertical-align:middle"> <b>Play/Pause</b>: Click to run; click again to pause (keeps tokens), or twice to stop.<br>
+            - <img src="assets/speed.png" alt="Speed" style="width:16px;height:16px;vertical-align:middle"> <b>Speed Control</b>: Click to cycle 0.25x, 0.5x, 1.0x, 1.5x (higher = faster).<br>
+            - <img src="assets/select.png" alt="Select" style="width:16px;height:16px;vertical-align:middle"> <b>Select & Edit</b>: Click or drag-select elements; double-click to edit.<br>
+            - <img src="assets/delete.png" alt="Delete" style="width:16px;height:16px;vertical-align:middle"> <b>Delete</b>: Select elements, click to remove.<br>
+            - <img src="assets/reset.png" alt="Reset" style="width:16px;height:16px;vertical-align:middle"> <b>Reset</b>: Click to clear tokens and stop simulation.<br>
+            - <img src="assets/save.png" alt="Save" style="width:16px;height:16px;vertical-align:middle"> <b>Save</b>: Download your design as JSON.<br>
+            - <img src="assets/load.png" alt="Load" style="width:16px;height:16px;vertical-align:middle"> <b>Load</b>: Import a JSON design.<br>
+            - <img src="assets/zin.png" alt="Zoom In" style="width:16px;height:16px;vertical-align:middle"> <img src="assets/zout.png" alt="Zoom Out" style="width:16px;height:16px;vertical-align:middle"> <b>Zoom</b>: Use buttons (or mouse wheel) to adjust view.<br>
         `;
-        guideText.style.fontSize = "14px";
 
         content.appendChild(close);
         content.appendChild(guideText);
