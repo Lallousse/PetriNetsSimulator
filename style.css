@@ -8,18 +8,18 @@ body {
 #left-panel, #right-panel {
     position: fixed;
     width: 50px;
-    height: 100%; /* Full height */
+    height: 100%;
     display: flex;
-    flex-direction: column; /* Always vertical */
+    flex-direction: column;
     align-items: center;
     gap: 10px;
     padding: 10px 0;
     z-index: 1000;
-    overflow-y: auto; /* Vertical scrolling always enabled */
-    overflow-x: hidden; /* Prevent horizontal overflow */
-    -webkit-overflow-scrolling: touch; /* Smooth touch scrolling */
-    scrollbar-width: thin; /* Firefox */
-    scrollbar-color: #888 transparent; /* Firefox: thumb, transparent track */
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #888 transparent;
 }
 
 #left-panel {
@@ -32,7 +32,7 @@ body {
 
 #left-panel::-webkit-scrollbar,
 #right-panel::-webkit-scrollbar {
-    width: 6px; /* Thin vertical scrollbar */
+    width: 6px;
 }
 
 #left-panel::-webkit-scrollbar-thumb,
@@ -43,7 +43,7 @@ body {
 
 #left-panel::-webkit-scrollbar-track,
 #right-panel::-webkit-scrollbar-track {
-    background: transparent; /* Transparent track */
+    background: transparent;
 }
 
 #petriCanvas {
@@ -107,7 +107,7 @@ body {
     transition: background-color 0.2s;
     border-radius: 4px;
     position: relative;
-    flex-shrink: 0; /* Prevent shrinking */
+    flex-shrink: 0;
 }
 
 .tool-btn:hover {
@@ -141,7 +141,7 @@ body {
     border-radius: 4px;
     font-size: 12px;
     white-space: nowrap;
-    z-index: 1100;
+    z-index: 1200; /* Increased from 1100 to stay above canvas and panels */
 }
 
 #left-panel .tool-btn[title]:hover:after {
@@ -197,7 +197,7 @@ body {
 
 @media (max-width: 400px) {
     #left-panel, #right-panel {
-        width: 40px; /* Keep narrow */
+        width: 40px;
     }
 
     .tool-btn {
