@@ -1621,13 +1621,44 @@ class PetriNetCanvas {
             - <img src="assets/plus.png" alt="Plus" style="width:16px;height:16px;vertical-align:middle"> <b>Add Tokens</b>: Select a place, click to add tokens.<br>
             - <img src="assets/minus.png" alt="Minus" style="width:16px;height:16px;vertical-align:middle"> <b>Remove Tokens</b>: Select a place, click to remove tokens.<br>
             - <img src="assets/play.png" alt="Play" style="width:16px;height:16px;vertical-align:middle"> <b>Play/Pause</b>: Click to run; click again to pause (keeps tokens), or twice to stop.<br>
-            - <img src="assets/speed.png" alt="Speed" style="width:16px;height:16px;vertical-align:middle"> <b>Speed Control</b>: Click to cycle 0.25x, 0.5x, 1.0x, 1.5x (higher = faster).<br>
+            - <img src="assets/speed.png" alt="Speed" style="width:16px;height:16px;vertical-align:middle"> <b>Speed Control</b>: Click to cycle 0.25x, 0.5x, 1.0x, 1.5x, 2.0x (higher = faster).<br>
             - <img src="assets/select.png" alt="Select" style="width:16px;height:16px;vertical-align:middle"> <b>Select & Edit</b>: Click or drag-select elements; double-click to edit.<br>
             - <img src="assets/delete.png" alt="Delete" style="width:16px;height:16px;vertical-align:middle"> <b>Delete</b>: Select elements, click to remove.<br>
             - <img src="assets/reset.png" alt="Reset" style="width:16px;height:16px;vertical-align:middle"> <b>Reset</b>: Click to clear tokens and stop simulation.<br>
+            - <img src="assets/clear.png" alt="Clear" style="width:16px;height:16px;vertical-align:middle"> <b>Clear Canvas</b>: Click to remove all elements (confirms if unsaved changes exist).<br>
+            - <img src="assets/hand.png" alt="Hand" style="width:16px;height:16px;vertical-align:middle"> <b>Hand Tool</b>: Select, then drag the canvas to pan the view.<br>
+            - <img src="assets/note.png" alt="Note" style="width:16px;height:16px;vertical-align:middle"> <b>Add Annotation</b>: Select, click to add text notes; double-click to edit.<br>
             - <img src="assets/save.png" alt="Save" style="width:16px;height:16px;vertical-align:middle"> <b>Save</b>: Download your design as JSON.<br>
             - <img src="assets/load.png" alt="Load" style="width:16px;height:16px;vertical-align:middle"> <b>Load</b>: Import a JSON design.<br>
-            - <img src="assets/zin.png" alt="Zoom In" style="width:16px;height:16px;vertical-align:middle"> <img src="assets/zout.png" alt="Zoom Out" style="width:16px;height:16px;vertical-align:middle"> <b>Zoom</b>: Use buttons (or mouse wheel) to adjust view.<br>
+            - <img src="assets/zin.png" alt="Zoom In" style="width:16px;height:16px;vertical-align:middle"> <img src="assets/zout.png" alt="Zoom Out" style="width:16px;height:16px;vertical-align:middle"> <b>Zoom</b>: Use buttons (or mouse wheel) to adjust view.<br><br>
+            <b>Analysis Tools:</b><br>
+            <b>Petri Net Formal Notation (PN-FN):</b><br>
+            - <img src="assets/pnfn.png" alt="PN-FN" style="width:16px;height:16px;vertical-align:middle"> Access via the 'PN-FN' button in the toolbar.<br>
+            - Displays the formal notation of the Petri Net(s) on the canvas as PN = {P, T, I, O, M₀}.<br>
+            - P: Set of all places (e.g., P = {P1, P2, P3}).<br>
+            - T: Set of all transitions (e.g., T = {T1, T2}).<br>
+            - I: Input function listing arc weights from places to transitions (e.g., I(P1, T1) = 2).<br>
+            - O: Output function listing arc weights from transitions to places (e.g., O(P2, T1) = 1).<br>
+            - M₀: Initial marking showing token counts for each place in a vertical matrix (e.g., M₀ =<br>&nbsp;&nbsp;&nbsp;&nbsp;|  2 |<br>&nbsp;&nbsp;&nbsp;&nbsp;|  1 |<br>&nbsp;&nbsp;&nbsp;&nbsp;|  0 |).<br>
+            - Multiple nets are detected if elements are unconnected and shown as 'Net 1', 'Net 2', etc.<br>
+            - 'Regenerate M₀': Updates M₀ to reflect current token counts.<br>
+            - 'Reload All': Refreshes the entire notation after design changes.<br>
+            - 'Insert as Note': Adds the notation as a multi-line annotation on the canvas (right or bottom).<br><br>
+            <b>Matrix Representation of Petri Nets (MR-PN):</b><br>
+            - <img src="assets/mrpn.png" alt="MR-PN" style="width:16px;height:16px;vertical-align:middle"> Access via the 'MR-PN' button in the toolbar.<br>
+            - Displays input and output matrices for each net on the canvas.<br>
+            - Input Matrix (I): Shows arc weights from places (rows) to transitions (columns), e.g.:<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t1&nbsp;&nbsp;&nbsp;t2&nbsp;&nbsp;&nbsp;t3<br>
+            &nbsp;&nbsp;p1 |&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;|<br>
+            &nbsp;&nbsp;p2 |&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;|<br>
+            - Output Matrix (O): Shows arc weights from transitions (columns) to places (rows), e.g.:<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t1&nbsp;&nbsp;&nbsp;t2&nbsp;&nbsp;&nbsp;t3<br>
+            &nbsp;&nbsp;p1 |&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;|<br>
+            &nbsp;&nbsp;p2 |&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;1&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;|<br>
+            - In S-Model, weights are always 1; in T-Model, weights reflect user-set values.<br>
+            - Multiple nets are shown as separate matrices if detected.<br>
+            - 'Regenerate': Updates matrices after design changes.<br>
+            - 'Insert as Note': Adds the matrices as a multi-line annotation on the canvas (right or bottom).<br>
         `;
 
         content.appendChild(close);
