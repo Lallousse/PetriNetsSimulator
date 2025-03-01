@@ -32,8 +32,9 @@ class PetriNetCanvas {
         this.autoRun = false;
         this.lastStep = 0;
         this.animationSpeed = 1.0;
-        this.speedOptions = [0.25, 0.5, 1.0, 1.5];
+        this.speedOptions = [0.25, 0.5, 1.0, 1.5, 2];
         this.currentSpeedIndex = 2;
+        this.paused = false;
         this.snappingEnabled = false;
         this.zoomLevel = 1.0;
         this.isSmartModel = false;
@@ -1738,6 +1739,8 @@ class PetriNetCanvas {
     }
 
     simulateStep() {
+        if (!this.autoRun || this.paused) return; // Skip if paused
+
         const enabled = this.transitions.filter(t => {
             const isEnabled = this.isSmartModel ? t.isEnabledSmart() : t.isEnabled();
             return isEnabled && !t.active && !this.firingTimeouts.has(t);
@@ -1780,11 +1783,18 @@ class PetriNetCanvas {
             this.updateStatus(`Acknowledging transition: ${transition.name}`, this.isSmartModel ? "S-Model" : "T-Model");
             console.log(`Acknowledging transition: ${transition.name}, queued tokens: ${queue.length}`);
 
-            const timeoutId = setTimeout(() => {
-                this.fireTransition(transition);
-                this.firingTimeouts.delete(transition);
-            }, 500);
-            this.firingTimeouts.set(transition, timeoutId);
+            // Wait for input animations to finish before firing
+            const checkAnimations = setInterval(() => {
+                const inputAnimsPending = this.animations.some(a => a.transition === transition && a.toTransition && !a.isFinished());
+                if (!inputAnimsPending && !this.paused) {
+                    clearInterval(checkAnimations);
+                    const timeoutId = setTimeout(() => {
+                        this.fireTransition(transition);
+                        this.firingTimeouts.delete(transition);
+                    }, 500); // Existing 500ms delay after animation
+                    this.firingTimeouts.set(transition, timeoutId);
+                }
+            }, 100); // Check every 100ms
         }
     }
 
@@ -1818,6 +1828,8 @@ class PetriNetCanvas {
     }
 
     updateAnimations() {
+        if (this.paused) return; // Freeze animations when paused
+
         console.log(`Updating animations, count: ${this.animations.length}`);
         for (let i = this.animations.length - 1; i >= 0; i--) {
             const anim = this.animations[i];
@@ -1844,8 +1856,18 @@ class PetriNetCanvas {
     }
 
     togglePlayPause() {
-        this.autoRun = !this.autoRun;
         if (!this.autoRun) {
+            this.autoRun = true;
+            this.paused = false;
+            this.lastStep = Date.now(); // Reset timing for smooth resume
+        } else if (!this.paused) {
+            this.paused = true; // Pause without stopping
+        } else {
+            this.paused = false; // Resume
+            this.lastStep = Date.now();
+        }
+
+        if (!this.autoRun && !this.paused) {
             this.animations = [];
             this.tokenQueue.clear();
             this.firingTimeouts.forEach((timeoutId, transition) => {
@@ -1854,11 +1876,12 @@ class PetriNetCanvas {
             });
             this.firingTimeouts.clear();
         }
-        document.getElementById("playPauseBtn").innerHTML = this.autoRun ?
+
+        document.getElementById("playPauseBtn").innerHTML = this.autoRun && !this.paused ?
             `<img src="assets/pause.png" alt="Pause">` :
             `<img src="assets/play.png" alt="Play">`;
-        this.updateStatus(this.autoRun ? "Simulation running" : "Simulation paused", this.isSmartModel ? "S-Model" : "T-Model");
-        console.log("Play/Pause toggled to:", this.autoRun);
+        this.updateStatus(this.autoRun && !this.paused ? "Simulation running" : "Simulation paused", this.isSmartModel ? "S-Model" : "T-Model");
+        console.log("Play/Pause toggled to:", this.autoRun, "Paused:", this.paused);
     }
 
     generateTokensFromInitializers() {

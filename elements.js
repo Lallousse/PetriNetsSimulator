@@ -179,7 +179,7 @@ class Transition {
             return;
         }
         if (highlighted) {
-            ctx.fillStyle = "rgba(144, 238, 144, 0.5)"; // Light green with transparency
+            ctx.fillStyle = "rgba(0, 255, 0, 0.5)"; // Solid pure green with transparency
             ctx.fillRect(this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
         }
         ctx.drawImage(img, this.x - iconSize / 2, this.y - iconSize / 2, iconSize, iconSize);
@@ -356,8 +356,10 @@ class TokenAnimation {
     }
 
     update() {
-        // Slower animation: ~2 seconds (120 frames at 60 FPS)
-        this.progress += 0.0083 * (1.0 / canvas.animationSpeed); // Adjusts to ~2s at speed 1.0
+        // Target: ~2s at speed 1.0 (120 frames at 60 FPS)
+        const baseIncrement = 0.0005; // Adjust lower for ~2s, test and tweak
+        console.log(`Animation update, speed: ${canvas.animationSpeed}, increment: ${baseIncrement / canvas.animationSpeed}`);
+        this.progress += baseIncrement * canvas.animationSpeed;
         if (this.progress > 1.0) this.progress = 1.0;
     }
 
