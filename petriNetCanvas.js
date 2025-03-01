@@ -10,6 +10,9 @@ class PetriNetCanvas {
             console.error("Failed to get 2D context!");
             return;
         }
+        
+        this.toolTipElements = new WeakMap(); // Store tooltip elements for each tool-btn
+        
         this.places = [];
         this.transitions = [];
         this.arcs = [];
@@ -224,7 +227,7 @@ class PetriNetCanvas {
         this.arcs.forEach(arc => {
             arc.draw(this.ctx, this.selectedElements.includes(arc), this.iconSize);
             if (arc.highlighted) {
-                this.ctx.strokeStyle = "rgba(144, 238, 144, 0.5)"; // Light green with transparency
+                this.ctx.strokeStyle = "rgba(0, 255, 0, 0.5)";
                 this.ctx.lineWidth = 4;
                 this.ctx.beginPath();
                 this.ctx.moveTo(arc.start.x, arc.start.y);
@@ -267,7 +270,7 @@ class PetriNetCanvas {
         }
 
         this.ctx.restore();
-        if (this.autoRun) {
+        if (this.autoRun && !this.paused) {
             const now = Date.now();
             if (now - this.lastStep >= this.stepDelay) {
                 this.simulateStep();
@@ -277,6 +280,19 @@ class PetriNetCanvas {
             this.generateTokensFromInitializers();
         }
         requestAnimationFrame(() => this.renderLoop());
+
+        // Update tooltips on hover (outside render loop for performance, but we'll handle it here for simplicity)
+        document.querySelectorAll(".tool-btn").forEach(btn => {
+            const tooltip = this.toolTipElements.get(btn);
+            if (tooltip) {
+                btn.addEventListener("mouseover", () => {
+                    tooltip.style.display = "block";
+                });
+                btn.addEventListener("mouseout", () => {
+                    tooltip.style.display = "none";
+                });
+            }
+        });
     }
 
     drawProperties() {
@@ -2316,6 +2332,23 @@ class PetriNetCanvas {
         document.getElementById("iniBtn").disabled = !this.designExists;
         document.getElementById("arcBtn").disabled = !this.designExists;
         document.getElementById("annotateBtn").disabled = !this.designExists;
+
+        // Add or update tooltips dynamically
+        document.querySelectorAll(".tool-btn").forEach(btn => {
+            const title = btn.getAttribute("title");
+            if (title) {
+                let tooltip = this.toolTipElements.get(btn);
+                if (!tooltip) {
+                    tooltip = document.createElement("span");
+                    tooltip.className = "tool-tooltip";
+                    btn.appendChild(tooltip);
+                    this.toolTipElements.set(btn, tooltip);
+                }
+                tooltip.textContent = title;
+                tooltip.style.display = "none"; // Hidden by default, shown on hover
+            }
+        });
+
         console.log("Updated button states. Has design:", hasDesign, "Design exists:", this.designExists);
     }
 

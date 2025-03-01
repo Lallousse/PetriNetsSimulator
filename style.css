@@ -131,9 +131,7 @@ body {
     background-color: #add8e6;
 }
 
-#left-panel .tool-btn[title]:hover:after,
-#right-panel .tool-btn[title]:hover:after {
-    content: attr(title);
+.tool-tooltip {
     position: absolute;
     background-color: #333;
     color: #fff;
@@ -141,16 +139,17 @@ body {
     border-radius: 4px;
     font-size: 12px;
     white-space: nowrap;
-    z-index: 1200; /* Increased from 1100 to stay above canvas and panels */
+    z-index: 1300; /* Higher than canvas and panels */
+    display: none; /* Hidden by default, shown on hover */
 }
 
-#left-panel .tool-btn[title]:hover:after {
+#left-panel .tool-btn .tool-tooltip {
     left: 45px;
     top: 50%;
     transform: translateY(-50%);
 }
 
-#right-panel .tool-btn[title]:hover:after {
+#right-panel .tool-btn .tool-tooltip {
     right: 45px;
     top: 50%;
     transform: translateY(-50%);
@@ -188,8 +187,8 @@ body {
         padding-right: 10px;
     }
 
-    #left-panel .tool-btn[title]:hover:after,
-    #right-panel .tool-btn[title]:hover:after {
+    #left-panel .tool-btn .tool-tooltip,
+    #right-panel .tool-btn .tool-tooltip {
         font-size: 10px;
         padding: 2px 4px;
     }
@@ -212,6 +211,14 @@ body {
 
     #speedLabel {
         left: 45px;
+    }
+
+    #left-panel .tool-btn .tool-tooltip {
+        left: 40px;
+    }
+
+    #right-panel .tool-btn .tool-tooltip {
+        right: 40px;
     }
 }
 
