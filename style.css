@@ -15,8 +15,8 @@ body {
     gap: 10px;
     padding: 10px 0;
     z-index: 1000;
-    background-color: #f4f4f4; /* Ensure visibility on resize */
-    transition: width 0.3s ease; /* Smooth transition for resizing */
+    background-color: #f4f4f4;
+    transition: width 0.3s ease;
 }
 
 #left-panel {
@@ -139,7 +139,7 @@ body {
 /* Responsive Design */
 @media (max-width: 600px) {
     #left-panel, #right-panel {
-        width: 40px; /* Slightly smaller for narrow screens */
+        width: 40px;
         gap: 5px;
         padding: 5px 0;
     }
@@ -155,12 +155,12 @@ body {
     }
 
     #speedLabel {
-        left: 50px; /* Adjust to avoid overlap */
+        left: 50px;
         font-size: 12px;
     }
 
     #statusBar {
-        padding: 0 10px; /* Reduce padding */
+        padding: 0 10px;
         font-size: 10px;
     }
 
@@ -185,22 +185,26 @@ body {
         padding: 5px;
         overflow-x: auto;
         white-space: nowrap;
+        background-color: #f4f4f4;
+        z-index: 1001; /* Above canvas */
     }
 
     #right-panel {
         flex-direction: row;
         width: 100%;
         height: 40px;
-        bottom: 30px; /* Above status bar */
+        bottom: 30px;
         right: 0;
         padding: 5px;
         overflow-x: auto;
         white-space: nowrap;
+        background-color: #f4f4f4;
+        z-index: 1001; /* Above canvas */
     }
 
     #petriCanvas {
-        top: 40px; /* Below left panel */
-        height: calc(100% - 70px); /* Adjust for both panels and status bar */
+        top: 40px;
+        height: calc(100% - 70px);
     }
 
     #speedLabel {
@@ -210,6 +214,7 @@ body {
 
     #statusBar {
         height: 30px;
+        z-index: 1002; /* Above panels */
     }
 
     #left-panel .tool-btn[title]:hover:after {
@@ -222,6 +227,29 @@ body {
         right: auto;
         top: -25px;
         transform: none;
+    }
+
+    /* Ensure scrollbars are visible and functional */
+    #left-panel, #right-panel {
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on mobile */
+        scrollbar-width: thin; /* Firefox */
+        scrollbar-color: #888 #f4f4f4; /* Firefox */
+    }
+
+    #left-panel::-webkit-scrollbar,
+    #right-panel::-webkit-scrollbar {
+        height: 8px; /* Horizontal scrollbar height */
+    }
+
+    #left-panel::-webkit-scrollbar-thumb,
+    #right-panel::-webkit-scrollbar-thumb {
+        background-color: #888;
+        border-radius: 4px;
+    }
+
+    #left-panel::-webkit-scrollbar-track,
+    #right-panel::-webkit-scrollbar-track {
+        background-color: #f4f4f4;
     }
 }
 
