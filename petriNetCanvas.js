@@ -11,8 +11,10 @@ class PetriNetCanvas {
             return;
         }
         
-        this.toolTipElements = new WeakMap(); // Store tooltip elements for each tool-btn
-        
+        this.toolTipElements = new WeakMap(); // Keeps tooltips
+        this.dropdownElements = new WeakMap(); // Store dropdown elements for each dropdown button
+        this.lastPinchDistance = null; // Keeps pinch distance for zoom
+
         this.places = [];
         this.transitions = [];
         this.arcs = [];
@@ -187,6 +189,35 @@ class PetriNetCanvas {
         document.getElementById("pnfnBtn").addEventListener("click", () => this.showPNFN());
         document.getElementById("mrpnBtn").addEventListener("click", () => this.showMRPN());
 
+        // Handle dropdowns for color and font (add once here, not in renderLoop)
+        const colorBtn = document.querySelector('.tool-btn[title="Color"]');
+        const fontBtn = document.querySelector('.tool-btn[title="Font"]');
+        if (colorBtn) colorBtn.addEventListener("click", () => this.toggleDropdown(colorBtn, "color-palette"));
+        if (fontBtn) fontBtn.addEventListener("click", () => this.toggleDropdown(fontBtn, "font-picker"));
+
+        // Add tooltips (move out of renderLoop for performance)
+        document.querySelectorAll(".tool-btn").forEach(btn => {
+            const title = btn.getAttribute("title");
+            if (title) {
+                let tooltip = this.toolTipElements.get(btn);
+                if (!tooltip) {
+                    tooltip = document.createElement("span");
+                    tooltip.className = "tool-tooltip";
+                    btn.appendChild(tooltip);
+                    this.toolTipElements.set(btn, tooltip);
+                }
+                tooltip.textContent = title;
+                tooltip.style.display = "none"; // Hidden by default
+
+                btn.addEventListener("mouseover", () => {
+                    tooltip.style.display = "block";
+                });
+                btn.addEventListener("mouseout", () => {
+                    tooltip.style.display = "none";
+                });
+            }
+        });
+
         document.getElementById("pnfnInsertBtn").addEventListener("click", () => this.insertPNFNAsNote());
         document.getElementById("pnfnRegenerateAllBtn").addEventListener("click", () => this.regeneratePNFN(true));
         document.getElementById("pnfnRegenerateM0Btn").addEventListener("click", () => this.regeneratePNFN(false));
@@ -215,6 +246,91 @@ class PetriNetCanvas {
         document.querySelectorAll(".close").forEach(close => close.onclick = () => {
             const modal = close.closest(".modal");
             if (modal) modal.remove();
+        });
+    }
+
+    toggleDropdown(btn, type) {
+        let dropdown = this.dropdownElements.get(btn);
+        if (!dropdown) {
+            dropdown = document.createElement("div");
+            dropdown.className = `dropdown-content ${type}`;
+            document.body.appendChild(dropdown); // Add to body, not panel
+            this.dropdownElements.set(btn, dropdown);
+
+            if (type === "color-palette") {
+                const colors = ["#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF"];
+                colors.forEach(color => {
+                    const option = document.createElement("div");
+                    option.className = "color-option";
+                    option.style.backgroundColor = color;
+                    option.addEventListener("click", () => this.changeAnnotationColor(color));
+                    dropdown.appendChild(option);
+                });
+            } else if (type === "font-picker") {
+                const fonts = ["Arial", "Times New Roman", "Helvetica Neue", "Courier New", "Monospaced"];
+                const sizes = [8, 10, 12, 14, 16, 18, 20];
+                const fontSelect = document.createElement("select");
+                fontSelect.id = "fontFamilySelect";
+                fonts.forEach(font => {
+                    const option = document.createElement("option");
+                    option.value = font;
+                    option.textContent = font;
+                    fontSelect.appendChild(option);
+                });
+                fontSelect.addEventListener("change", () => this.changeAnnotationFont(fontSelect.value, parseInt(document.getElementById("fontSizeSelect").value)));
+                dropdown.appendChild(fontSelect);
+
+                const sizeSelect = document.createElement("select");
+                sizeSelect.id = "fontSizeSelect";
+                sizes.forEach(size => {
+                    const option = document.createElement("option");
+                    option.value = size;
+                    option.textContent = size;
+                    sizeSelect.appendChild(option);
+                });
+                sizeSelect.addEventListener("change", () => this.changeAnnotationFont(document.getElementById("fontFamilySelect").value, parseInt(sizeSelect.value)));
+                dropdown.appendChild(sizeSelect);
+            }
+        }
+
+        const rect = btn.getBoundingClientRect();
+        const isRightPanel = btn.closest("#right-panel");
+        dropdown.style.position = "fixed";
+        
+        // Position for left panel (slide right-to-left)
+        if (!isRightPanel) {
+            dropdown.style.left = `${rect.right}px`; // Slide from left edge of button
+            dropdown.style.top = `${rect.top}px`;
+            dropdown.style.transform = "translateX(-100%)"; // Slide left
+        } 
+        // Position for right panel (slide left-to-right)
+        else {
+            dropdown.style.right = `${window.innerWidth - rect.left}px`; // Slide from right edge of button
+            dropdown.style.top = `${rect.top}px`;
+            dropdown.style.transform = "translateX(100%)"; // Slide right
+        }
+
+        dropdown.style.opacity = "0";
+        dropdown.style.pointerEvents = "none";
+
+        // Toggle visibility
+        if (dropdown.style.opacity === "0" || dropdown.style.opacity === "") {
+            dropdown.style.opacity = "1";
+            dropdown.style.pointerEvents = "auto";
+            dropdown.style.transform = "translateX(0)";
+        } else {
+            dropdown.style.opacity = "0";
+            dropdown.style.pointerEvents = "none";
+            dropdown.style.transform = isRightPanel ? "translateX(100%)" : "translateX(-100%)";
+        }
+
+        // Close other dropdowns
+        this.dropdownElements.forEach((otherDropdown, otherBtn) => {
+            if (otherBtn !== btn) {
+                otherDropdown.style.opacity = "0";
+                otherDropdown.style.pointerEvents = "none";
+                otherDropdown.style.transform = otherBtn.closest("#right-panel") ? "translateX(100%)" : "translateX(-100%)";
+            }
         });
     }
 
@@ -280,19 +396,6 @@ class PetriNetCanvas {
             this.generateTokensFromInitializers();
         }
         requestAnimationFrame(() => this.renderLoop());
-
-        // Update tooltips on hover (outside render loop for performance, but we'll handle it here for simplicity)
-        document.querySelectorAll(".tool-btn").forEach(btn => {
-            const tooltip = this.toolTipElements.get(btn);
-            if (tooltip) {
-                btn.addEventListener("mouseover", () => {
-                    tooltip.style.display = "block";
-                });
-                btn.addEventListener("mouseout", () => {
-                    tooltip.style.display = "none";
-                });
-            }
-        });
     }
 
     drawProperties() {
@@ -2332,22 +2435,6 @@ class PetriNetCanvas {
         document.getElementById("iniBtn").disabled = !this.designExists;
         document.getElementById("arcBtn").disabled = !this.designExists;
         document.getElementById("annotateBtn").disabled = !this.designExists;
-
-        // Add or update tooltips dynamically
-        document.querySelectorAll(".tool-btn").forEach(btn => {
-            const title = btn.getAttribute("title");
-            if (title) {
-                let tooltip = this.toolTipElements.get(btn);
-                if (!tooltip) {
-                    tooltip = document.createElement("span");
-                    tooltip.className = "tool-tooltip";
-                    btn.appendChild(tooltip);
-                    this.toolTipElements.set(btn, tooltip);
-                }
-                tooltip.textContent = title;
-                tooltip.style.display = "none"; // Hidden by default, shown on hover
-            }
-        });
 
         console.log("Updated button states. Has design:", hasDesign, "Design exists:", this.designExists);
     }

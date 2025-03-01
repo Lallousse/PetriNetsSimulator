@@ -139,8 +139,8 @@ body {
     border-radius: 4px;
     font-size: 12px;
     white-space: nowrap;
-    z-index: 1300; /* Higher than canvas and panels */
-    display: none; /* Hidden by default, shown on hover */
+    z-index: 1300;
+    display: none;
 }
 
 #left-panel .tool-btn .tool-tooltip {
@@ -224,29 +224,39 @@ body {
 
 .dropdown {
     position: relative;
+    z-index: 1100;
 }
 
 .dropdown-content {
-    position: absolute;
-    right: 100%;
-    top: 0;
+    position: fixed;
     background-color: #fff;
     min-width: 160px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    z-index: 1200;
+    z-index: 1400;
     border-radius: 4px;
     padding: 10px;
-    transform: translateX(100%);
     opacity: 0;
     pointer-events: none;
-    transition: transform 0.3s ease, opacity 0.2s ease;
+    transition: opacity 0.2s ease, transform 0.3s ease;
+}
+
+#left-panel .dropdown-content {
+    left: 50px; /* Slide from left edge for left panel */
+    top: auto;
+    transform: translateX(-100%); /* Slide right-to-left */
+}
+
+#right-panel .dropdown-content {
+    right: 50px; /* Slide from right edge for right panel */
+    top: auto;
+    transform: translateX(100%); /* Slide left-to-right */
 }
 
 .dropdown:hover .dropdown-content,
 .dropdown:focus-within .dropdown-content {
-    transform: translateX(0);
     opacity: 1;
     pointer-events: auto;
+    transform: translateX(0);
 }
 
 .dropdown-content button {
