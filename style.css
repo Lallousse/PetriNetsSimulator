@@ -7,35 +7,32 @@ body {
 
 #left-panel, #right-panel {
     position: fixed;
-    width: 100%; /* Full width for horizontal layout */
-    height: 40px; /* Fixed height for horizontal row */
+    width: 50px;
+    height: 100%; /* Full height */
     display: flex;
-    flex-direction: row; /* Always horizontal */
+    flex-direction: column; /* Always vertical */
     align-items: center;
     gap: 10px;
-    padding: 5px;
-    z-index: 1001;
-    overflow-x: auto; /* Horizontal scrolling always enabled */
-    overflow-y: hidden; /* No vertical scrolling */
-    white-space: nowrap; /* Prevent wrapping */
+    padding: 10px 0;
+    z-index: 1000;
+    overflow-y: auto; /* Vertical scrolling always enabled */
+    overflow-x: hidden; /* Prevent horizontal overflow */
     -webkit-overflow-scrolling: touch; /* Smooth touch scrolling */
     scrollbar-width: thin; /* Firefox */
     scrollbar-color: #888 transparent; /* Firefox: thumb, transparent track */
 }
 
 #left-panel {
-    top: 0;
     left: 0;
 }
 
 #right-panel {
-    bottom: 30px; /* Above status bar */
-    left: 0; /* Changed from right: 0 */
+    right: 0;
 }
 
 #left-panel::-webkit-scrollbar,
 #right-panel::-webkit-scrollbar {
-    height: 6px; /* Thin horizontal scrollbar */
+    width: 6px; /* Thin vertical scrollbar */
 }
 
 #left-panel::-webkit-scrollbar-thumb,
@@ -46,23 +43,23 @@ body {
 
 #left-panel::-webkit-scrollbar-track,
 #right-panel::-webkit-scrollbar-track {
-    background: transparent;
+    background: transparent; /* Transparent track */
 }
 
 #petriCanvas {
     position: absolute;
-    top: 40px; /* Below left panel */
+    top: 0;
     left: 0;
     width: 100%;
-    height: calc(100% - 70px); /* Between left panel and right panel/status bar */
+    height: calc(100% - 30px);
     background-color: #ffffff;
     z-index: 500;
 }
 
 #speedLabel {
     position: fixed;
-    top: 45px; /* Below left panel */
-    left: 10px;
+    top: 10px;
+    left: 70px;
     font-size: 14px;
     color: #333;
     background: rgba(255, 255, 255, 0.8);
@@ -84,7 +81,7 @@ body {
     align-items: center;
     padding: 0 40px;
     border-top: 1px solid #555;
-    z-index: 1002; /* Above panels */
+    z-index: 1000;
 }
 
 #statusText {
@@ -111,7 +108,6 @@ body {
     border-radius: 4px;
     position: relative;
     flex-shrink: 0; /* Prevent shrinking */
-    margin: 0 2px; /* Small spacing */
 }
 
 .tool-btn:hover {
@@ -149,19 +145,25 @@ body {
 }
 
 #left-panel .tool-btn[title]:hover:after {
-    top: 35px; /* Below button */
-    left: 50%;
-    transform: translateX(-50%);
+    left: 45px;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 #right-panel .tool-btn[title]:hover:after {
-    top: -25px; /* Above button */
-    left: 50%;
-    transform: translateX(-50%);
+    right: 45px;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
-/* Responsive Adjustments */
+/* Responsive Design */
 @media (max-width: 600px) {
+    #left-panel, #right-panel {
+        width: 40px;
+        gap: 5px;
+        padding: 5px 0;
+    }
+
     .tool-btn {
         width: 30px;
         height: 30px;
@@ -173,6 +175,7 @@ body {
     }
 
     #speedLabel {
+        left: 50px;
         font-size: 12px;
     }
 
@@ -193,7 +196,10 @@ body {
 }
 
 @media (max-width: 400px) {
-    /* Further adjustments for very small screens */
+    #left-panel, #right-panel {
+        width: 40px; /* Keep narrow */
+    }
+
     .tool-btn {
         width: 28px;
         height: 28px;
@@ -204,9 +210,8 @@ body {
         height: 22px;
     }
 
-    #left-panel, #right-panel {
-        padding: 3px;
-        gap: 5px;
+    #speedLabel {
+        left: 45px;
     }
 }
 
@@ -216,27 +221,23 @@ body {
 
 .dropdown-content {
     position: absolute;
-    left: 50%; /* Center under/over button */
-    transform: translateX(-50%);
-    top: 100%; /* Below for left-panel, adjust for right-panel */
+    right: 100%;
+    top: 0;
     background-color: #fff;
     min-width: 160px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     z-index: 1200;
     border-radius: 4px;
     padding: 10px;
+    transform: translateX(100%);
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.2s ease;
-}
-
-#right-panel .dropdown-content {
-    top: auto;
-    bottom: 100%; /* Above for right-panel */
+    transition: transform 0.3s ease, opacity 0.2s ease;
 }
 
 .dropdown:hover .dropdown-content,
 .dropdown:focus-within .dropdown-content {
+    transform: translateX(0);
     opacity: 1;
     pointer-events: auto;
 }

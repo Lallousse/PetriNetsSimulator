@@ -53,7 +53,7 @@ class PetriNetCanvas {
         this.undoHistory = [];
         this.redoHistory = [];
         this.maxHistorySize = 10;
-
+        this.lastPinchDistance = null;
         this.canvasWidth = window.innerWidth;
         this.canvasHeight = window.innerHeight - 30;
         this.tokenQueue = new Map();
@@ -129,13 +129,35 @@ class PetriNetCanvas {
         }, { passive: false });
         this.canvas.addEventListener("touchmove", (e) => {
             e.preventDefault();
-            const touch = e.touches[0];
-            this.handleMouseMove({ clientX: touch.clientX, clientY: touch.clientY, buttons: 1 });
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                this.handleMouseMove({ clientX: touch.clientX, clientY: touch.clientY, buttons: 1 });
+            } else if (e.touches.length === 2) {
+                // Pinch-to-zoom
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                const currentDistance = Math.hypot(
+                    touch1.clientX - touch2.clientX,
+                    touch1.clientY - touch2.clientY
+                );
+                if (!this.lastPinchDistance) {
+                    this.lastPinchDistance = currentDistance;
+                } else {
+                    const delta = currentDistance - this.lastPinchDistance;
+                    if (delta > 0) {
+                        this.zoomIn();
+                    } else if (delta < 0) {
+                        this.zoomOut();
+                    }
+                    this.lastPinchDistance = currentDistance;
+                }
+            }
         }, { passive: false });
         this.canvas.addEventListener("touchend", (e) => {
             e.preventDefault();
             const touch = e.changedTouches[0];
             this.handleMouseUp({ clientX: touch.clientX, clientY: touch.clientY });
+            this.lastPinchDistance = null; // Reset pinch distance
         }, { passive: false });
 
         // Button events
