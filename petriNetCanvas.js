@@ -1584,7 +1584,7 @@ class PetriNetCanvas {
         content.style.padding = "20px";
         content.style.borderRadius = "8px";
         content.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
-        content.style.width = "600px";
+        content.style.width = "700px";
         content.style.maxWidth = "90vw";
         content.style.maxHeight = "80vh";
         content.style.overflowY = "auto";
