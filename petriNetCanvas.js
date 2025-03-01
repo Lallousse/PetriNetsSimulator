@@ -46,7 +46,7 @@ class PetriNetCanvas {
         this.iconSize = 32;
         this.tokenSize = 8;
         this.stepDelay = 1000;
-        this.animationSpeedBase = 0.0005;
+        this.animationSpeedBase = 0.1;
 
         this.icons = {};
         this.undoHistory = [];
@@ -55,6 +55,8 @@ class PetriNetCanvas {
 
         this.canvasWidth = window.innerWidth;
         this.canvasHeight = window.innerHeight - 30;
+        this.tokenQueue = new Map();
+        this.firingTimeouts = new Map();
 
         this.resize();
         this.loadIcons();
@@ -176,15 +178,15 @@ class PetriNetCanvas {
         this.ctx.save();
         this.ctx.scale(this.zoomLevel, this.zoomLevel);
 
+        // Draw arcs with highlighting
         this.arcs.forEach(arc => {
             arc.draw(this.ctx, this.selectedElements.includes(arc), this.iconSize);
             if (arc.highlighted) {
-                this.ctx.strokeStyle = "#90EE90"; // Solid light green
-                this.ctx.lineWidth = 3;
+                this.ctx.strokeStyle = "rgba(144, 238, 144, 0.5)"; // Light green with transparency
+                this.ctx.lineWidth = 4;
                 this.ctx.beginPath();
-                const angle = Math.atan2(arc.end.y - arc.start.y, arc.end.x - arc.start.x);
-                this.ctx.moveTo(arc.start.x + this.iconSize / 2 * Math.cos(angle), arc.start.y + this.iconSize / 2 * Math.sin(angle));
-                this.ctx.lineTo(arc.end.x - this.iconSize / 2 * Math.cos(angle), arc.end.y - this.iconSize / 2 * Math.sin(angle));
+                this.ctx.moveTo(arc.start.x, arc.start.y);
+                this.ctx.lineTo(arc.end.x, arc.end.y);
                 this.ctx.stroke();
             }
         });
@@ -198,10 +200,13 @@ class PetriNetCanvas {
         }
 
         this.places.forEach(place => place.draw(this.ctx, this.selectedElements.includes(place), this.iconSize, this.tokenSize));
+
+        // Draw transitions with highlighting
         this.transitions.forEach(trans => {
             const isHighlighted = this.animations.some(anim => anim.transition === trans && anim.toTransition && !anim.isFinished());
             trans.draw(this.ctx, this.selectedElements.includes(trans), this.iconSize, isHighlighted);
         });
+
         this.initializers.forEach(ini => ini.draw(this.ctx, this.selectedElements.includes(ini), this.iconSize));
         this.annotations.forEach(annot => annot.draw(this.ctx, this.selectedElements.includes(annot)));
         this.animations.forEach(anim => anim.draw(this.ctx, this.tokenSize));
@@ -1188,32 +1193,30 @@ class PetriNetCanvas {
         } else if (this.drawingArc && this.arcStart) {
             const start = this.getElementAt(this.arcStart.x, this.arcStart.y);
             const elem = this.getElementAt(x, y);
-            if (start && elem) {
-                if (start instanceof Place && elem instanceof Transition) {
-                    this.saveStateToUndo();
-                    const arc = new Arc(start, elem, true);
-                    this.arcs.push(arc);
-                    elem.inputArcs.push({ place: start, weight: 1 });
-                    this.designState.setUnsavedChanges();
-                    this.updateButtonStates();
-                    console.log("Added input arc from", start.name, "to", elem.name);
-                } else if (start instanceof Transition && elem instanceof Place) {
-                    this.saveStateToUndo();
-                    const arc = new Arc(start, elem, false);
-                    this.arcs.push(arc);
-                    start.outputArcs.push({ place: elem, weight: 1 });
-                    this.designState.setUnsavedChanges();
-                    this.updateButtonStates();
-                    console.log("Added output arc from", start.name, "to", elem.name);
-                } else if (start instanceof Initializer && elem instanceof Place) {
-                    this.saveStateToUndo();
-                    const arc = new Arc(start, elem, false);
-                    this.arcs.push(arc);
-                    start.outputPlace = elem;
-                    this.designState.setUnsavedChanges();
-                    this.updateButtonStates();
-                    console.log("Added initializer arc from", start.name, "to", elem.name);
-                }
+            if (start instanceof Place && elem instanceof Transition) {
+                this.saveStateToUndo();
+                const arc = new Arc(start, elem, true);
+                this.arcs.push(arc);
+                elem.inputArcs.push({ place: start, weight: 1 });
+                this.designState.setUnsavedChanges();
+                this.updateButtonStates();
+                console.log("Added input arc");
+            } else if (start instanceof Transition && elem instanceof Place) {
+                this.saveStateToUndo();
+                const arc = new Arc(start, elem, false);
+                this.arcs.push(arc);
+                start.outputArcs.push({ place: elem, weight: 1 });
+                this.designState.setUnsavedChanges();
+                this.updateButtonStates();
+                console.log("Added output arc");
+            } else if (start instanceof Initializer && elem instanceof Place) {
+                this.saveStateToUndo();
+                const arc = new Arc(start, elem, false);
+                this.arcs.push(arc);
+                start.outputPlace = elem;
+                this.designState.setUnsavedChanges();
+                this.updateButtonStates();
+                console.log("Added initializer arc");
             }
             this.arcStart = null;
             this.arcEnd = null;
@@ -1737,38 +1740,90 @@ class PetriNetCanvas {
     simulateStep() {
         const enabled = this.transitions.filter(t => {
             const isEnabled = this.isSmartModel ? t.isEnabledSmart() : t.isEnabled();
-            return isEnabled && !t.active;
+            return isEnabled && !t.active && !this.firingTimeouts.has(t);
         });
-        if (enabled.length === 0) return;
+        if (enabled.length === 0) {
+            console.log("No enabled and idle transitions found");
+            return;
+        }
 
         const transition = enabled[Math.floor(Math.random() * enabled.length)];
         transition.active = true;
-        transition.pendingTokens = 0;
-        if (this.isSmartModel) transition.pendingSmartTokens = [];
+        const queue = [];
+
+        console.log(`Starting simulation for ${transition.name}, enabled: ${this.isSmartModel ? transition.isEnabledSmart() : transition.isEnabled()}`);
 
         transition.inputArcs.forEach(arc => {
             const place = arc.place;
             const weight = this.isSmartModel ? 1 : arc.weight;
-            for (let i = 0; i < weight && place.tokens > 0; i++) {
+            const tokensToMove = Math.min(weight, place.tokens);
+            console.log(`Processing arc from ${place.name} (tokens: ${place.tokens}) to ${transition.name}, weight: ${weight}, moving: ${tokensToMove}`);
+            for (let i = 0; i < tokensToMove; i++) {
+                const token = this.isSmartModel ? new SmartToken(place.getTokenValue()) : null;
+                queue.push({ place, token });
+                place.removeToken();
                 const anim = this.isSmartModel ?
-                    new TokenAnimation(place.x, place.y, transition.x, transition.y, null, place, new SmartToken(place.getTokenValue())) :
+                    new TokenAnimation(place.x, place.y, transition.x, transition.y, null, place, token) :
                     new TokenAnimation(place.x, place.y, transition.x, transition.y, null, place);
                 anim.toTransition = true;
                 anim.transition = transition;
                 this.animations.push(anim);
-                place.removeToken();
-                transition.pendingTokens++;
-                if (this.isSmartModel) transition.pendingSmartTokens.push(new SmartToken(place.getTokenValue()));
+                console.log(`Queued token from ${place.name} to ${transition.name}, queue length: ${queue.length}`);
             }
         });
-        this.updateStatus(`Acknowledging transition: ${transition.name}`, this.isSmartModel ? "S-Model" : "T-Model");
-        console.log(`Acknowledging transition: ${transition.name}, pending tokens: ${transition.pendingTokens}`);
+
+        if (queue.length === 0) {
+            console.log(`No tokens to move to ${transition.name}, resetting active`);
+            transition.active = false;
+        } else {
+            this.tokenQueue.set(transition, queue);
+            this.updateStatus(`Acknowledging transition: ${transition.name}`, this.isSmartModel ? "S-Model" : "T-Model");
+            console.log(`Acknowledging transition: ${transition.name}, queued tokens: ${queue.length}`);
+
+            const timeoutId = setTimeout(() => {
+                this.fireTransition(transition);
+                this.firingTimeouts.delete(transition);
+            }, 500);
+            this.firingTimeouts.set(transition, timeoutId);
+        }
+    }
+
+    fireTransition(transition) {
+        if (!transition.active || !this.tokenQueue.has(transition)) {
+            console.log(`Transition ${transition.name} not active or no tokens queued, skipping fire`);
+            transition.active = false;
+            return;
+        }
+
+        const queue = this.tokenQueue.get(transition);
+        const requiredTokens = this.isSmartModel ? transition.inputArcs.length : transition.inputArcs.reduce((sum, a) => sum + a.weight, 0);
+        const stillEnabled = queue.length >= requiredTokens;
+        console.log(`Firing ${transition.name}, enabled: ${stillEnabled}, queued tokens: ${queue.length}, required: ${requiredTokens}`);
+
+        if (stillEnabled) {
+            if (this.isSmartModel) {
+                const smartTokens = queue.map(q => q.token);
+                transition.fireSmart(this.animations, smartTokens);
+            } else {
+                transition.fire(this.animations);
+            }
+            this.updateStatus(`Fired transition: ${transition.name}`, this.isSmartModel ? "S-Model" : "T-Model");
+            console.log(`Fired transition: ${transition.name}, processed tokens: ${queue.length}`);
+        } else {
+            console.log(`Transition ${transition.name} not enabled with queued tokens, aborting fire`);
+        }
+
+        transition.active = false;
+        this.tokenQueue.delete(transition);
     }
 
     updateAnimations() {
+        console.log(`Updating animations, count: ${this.animations.length}`);
         for (let i = this.animations.length - 1; i >= 0; i--) {
             const anim = this.animations[i];
+            const oldProgress = anim.progress;
             anim.update();
+            console.log(`Animation ${i} from ${anim.sourcePlace?.name || "unknown"} to ${anim.targetPlace?.name || anim.transition?.name || "unknown"}, progress: ${oldProgress} -> ${anim.progress}, finished: ${anim.isFinished()}`);
 
             const arc = this.arcs.find(a => 
                 (a.start === anim.sourcePlace && a.end === anim.transition) ||
@@ -1778,30 +1833,32 @@ class PetriNetCanvas {
             else if (arc) arc.highlighted = false;
 
             if (anim.isFinished()) {
-                if (anim.toTransition && anim.transition) {
-                    anim.transition.pendingTokens--;
-                    if (anim.transition.pendingTokens <= 0 && anim.transition.active) {
-                        if (this.isSmartModel ? anim.transition.isEnabledSmart() : anim.transition.isEnabled()) {
-                            const delay = this.isSmartModel ? anim.transition.task.getPauseDuration() : 500;
-                            setTimeout(() => {
-                                if (this.isSmartModel) {
-                                    anim.transition.fireSmart(this.animations);
-                                } else {
-                                    anim.transition.fire(this.animations);
-                                }
-                                this.updateStatus(`Fired transition: ${anim.transition.name}`, this.isSmartModel ? "S-Model" : "T-Model");
-                                console.log(`Fired transition: ${anim.transition.name}`);
-                            }, delay || 500);
-                        }
-                        anim.transition.active = false;
-                    }
-                } else if (anim.targetPlace) {
+                if (!anim.toTransition && anim.targetPlace) {
                     anim.targetPlace.addToken();
                     if (this.isSmartModel && anim.smartToken) anim.targetPlace.setTokenValue(anim.smartToken.value);
+                    console.log(`Token added to ${anim.targetPlace.name}, tokens: ${anim.targetPlace.tokens}`);
                 }
                 this.animations.splice(i, 1);
             }
         }
+    }
+
+    togglePlayPause() {
+        this.autoRun = !this.autoRun;
+        if (!this.autoRun) {
+            this.animations = [];
+            this.tokenQueue.clear();
+            this.firingTimeouts.forEach((timeoutId, transition) => {
+                clearTimeout(timeoutId);
+                transition.active = false;
+            });
+            this.firingTimeouts.clear();
+        }
+        document.getElementById("playPauseBtn").innerHTML = this.autoRun ?
+            `<img src="assets/pause.png" alt="Pause">` :
+            `<img src="assets/play.png" alt="Play">`;
+        this.updateStatus(this.autoRun ? "Simulation running" : "Simulation paused", this.isSmartModel ? "S-Model" : "T-Model");
+        console.log("Play/Pause toggled to:", this.autoRun);
     }
 
     generateTokensFromInitializers() {
@@ -1952,23 +2009,16 @@ class PetriNetCanvas {
             places: this.places.map(p => ({ ...p, smartToken: p.smartToken ? { value: p.smartToken.value } : null })),
             transitions: this.transitions.map(t => ({
                 ...t,
-                inputArcs: t.inputArcs.map(a => ({ place: a.place, weight: a.weight })),
-                outputArcs: t.outputArcs.map(a => ({ place: a.place, weight: a.weight })),
+                inputArcs: [...t.inputArcs],
+                outputArcs: [...t.outputArcs],
                 task: t.task ? { task: t.task.task } : null,
                 tokenOrder: t.tokenOrder,
                 passOnTrue: t.passOnTrue,
                 passOnFalse: t.passOnFalse,
                 passPreviousValue: t.passPreviousValue
             })),
-            arcs: this.arcs.map(a => ({ 
-                start: a.start, 
-                end: a.end, 
-                isInput: a.isInput, 
-                type: a.type, 
-                controlPoints: a.controlPoints.map(cp => ({ ...cp })), 
-                weight: a.weight 
-            })),
-            initializers: this.initializers.map(i => ({ ...i, outputPlace: i.outputPlace })),
+            arcs: this.arcs.map(a => ({ ...a, type: a.type, controlPoints: a.controlPoints.map(cp => ({ ...cp })), weight: a.weight })),
+            initializers: this.initializers.map(i => ({ ...i })),
             annotations: this.annotations.map(a => ({ ...a })),
             selectedElements: [...this.selectedElements],
             isSmartModel: this.isSmartModel,
@@ -2014,23 +2064,16 @@ class PetriNetCanvas {
             places: this.places.map(p => ({ ...p, smartToken: p.smartToken ? { value: p.smartToken.value } : null })),
             transitions: this.transitions.map(t => ({
                 ...t,
-                inputArcs: t.inputArcs.map(a => ({ place: a.place, weight: a.weight })),
-                outputArcs: t.outputArcs.map(a => ({ place: a.place, weight: a.weight })),
+                inputArcs: [...t.inputArcs],
+                outputArcs: [...t.outputArcs],
                 task: t.task ? { task: t.task.task } : null,
                 tokenOrder: t.tokenOrder,
                 passOnTrue: t.passOnTrue,
                 passOnFalse: t.passOnFalse,
                 passPreviousValue: t.passPreviousValue
             })),
-            arcs: this.arcs.map(a => ({ 
-                start: a.start, 
-                end: a.end, 
-                isInput: a.isInput, 
-                type: a.type, 
-                controlPoints: a.controlPoints.map(cp => ({ ...cp })), 
-                weight: a.weight 
-            })),
-            initializers: this.initializers.map(i => ({ ...i, outputPlace: i.outputPlace })),
+            arcs: this.arcs.map(a => ({ ...a, type: a.type, controlPoints: a.controlPoints.map(cp => ({ ...cp })), weight: a.weight })),
+            initializers: this.initializers.map(i => ({ ...i })),
             annotations: this.annotations.map(a => ({ ...a })),
             selectedElements: [...this.selectedElements],
             isSmartModel: this.isSmartModel,
@@ -2065,29 +2108,29 @@ class PetriNetCanvas {
         this.initializers = state.initializers.map(i => 
             new Initializer(i.name, i.x, i.y, i.tokensToGenerate, i.tokensPerSecond, i.isContinuous, i.tokenValue || 0));
         this.arcs = state.arcs.map(a => {
-            const start = a.start instanceof Place ? this.places.find(p => p.name === a.start.name) :
-                          a.start instanceof Transition ? this.transitions.find(t => t.name === a.start.name) :
-                          this.initializers.find(i => i.name === a.start.name);
-            const end = a.end instanceof Place ? this.places.find(p => p.name === a.end.name) :
-                        this.transitions.find(t => t.name === a.end.name);
+            const start = a.start instanceof Place ? this.places[this.places.findIndex(p => p.name === a.start.name)] :
+                          a.start instanceof Transition ? this.transitions[this.transitions.findIndex(t => t.name === a.start.name)] :
+                          this.initializers[this.initializers.findIndex(i => i.name === a.start.name)];
+            const end = a.end instanceof Place ? this.places[this.places.findIndex(p => p.name === a.end.name)] :
+                        this.transitions[this.transitions.findIndex(t => t.name === a.end.name)];
             const arc = new Arc(start, end, a.isInput);
             arc.controlPoints = a.controlPoints.map(cp => ({ x: cp.x, y: cp.y }));
             arc.weight = a.weight || 1;
             return arc;
         });
         this.transitions.forEach((t, i) => {
-            t.inputArcs = state.transitions[i].inputArcs.map(a => ({
-                place: this.places.find(p => p.name === a.place.name),
-                weight: a.weight
+            t.inputArcs = state.transitions[i].inputArcs.map(a => ({ 
+                place: this.places[this.places.findIndex(p => p.name === a.place.name)], 
+                weight: a.weight 
             }));
-            t.outputArcs = state.transitions[i].outputArcs.map(a => ({
-                place: this.places.find(p => p.name === a.place.name),
-                weight: a.weight
+            t.outputArcs = state.transitions[i].outputArcs.map(a => ({ 
+                place: this.places[this.places.findIndex(p => p.name === a.place.name)], 
+                weight: a.weight 
             }));
         });
         this.initializers.forEach((i, idx) => {
             if (state.initializers[idx].outputPlace) {
-                i.outputPlace = this.places.find(p => p.name === state.initializers[idx].outputPlace.name);
+                i.outputPlace = this.places[this.places.findIndex(p => p.name === state.initializers[idx].outputPlace.name)];
             }
         });
         this.annotations = state.annotations.map(a => 
