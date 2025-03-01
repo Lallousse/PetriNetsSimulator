@@ -11,10 +11,11 @@ class PetriNetCanvas {
             return;
         }
         
-        this.toolTipElements = new WeakMap(); // Keeps tooltips
-        this.dropdownElements = new WeakMap(); // Store dropdown elements for each dropdown button
-        this.lastPinchDistance = null; // Keeps pinch distance for zoom
-
+        this.toolTipElements = new WeakMap(); // Store tooltip elements
+        this.dropdownElements = new WeakMap(); // Store dropdown elements
+        this.lastPinchDistance = null; // Store pinch distance for zoom
+        this.activeDropdownBtn = null; // Track the currently active dropdown button
+        
         this.places = [];
         this.transitions = [];
         this.arcs = [];
@@ -189,13 +190,13 @@ class PetriNetCanvas {
         document.getElementById("pnfnBtn").addEventListener("click", () => this.showPNFN());
         document.getElementById("mrpnBtn").addEventListener("click", () => this.showMRPN());
 
-        // Handle dropdowns for color and font (add once here, not in renderLoop)
+        // Handle dropdowns for color and font (click only, remove hover)
         const colorBtn = document.querySelector('.tool-btn[title="Color"]');
         const fontBtn = document.querySelector('.tool-btn[title="Font"]');
-        if (colorBtn) colorBtn.addEventListener("click", () => this.toggleDropdown(colorBtn, "color-palette"));
-        if (fontBtn) fontBtn.addEventListener("click", () => this.toggleDropdown(fontBtn, "font-picker"));
+        if (colorBtn) colorBtn.addEventListener("click", (e) => { e.preventDefault(); this.toggleDropdown(colorBtn, "color-palette"); });
+        if (fontBtn) fontBtn.addEventListener("click", (e) => { e.preventDefault(); this.toggleDropdown(fontBtn, "font-picker"); });
 
-        // Add tooltips (move out of renderLoop for performance)
+        // Add tooltips (once, for performance)
         document.querySelectorAll(".tool-btn").forEach(btn => {
             const title = btn.getAttribute("title");
             if (title) {
@@ -227,6 +228,18 @@ class PetriNetCanvas {
 
         document.getElementById("zoomInBtn").addEventListener("click", () => this.zoomIn());
         document.getElementById("zoomOutBtn").addEventListener("click", () => this.zoomOut());
+
+        // Close dropdowns on outside click
+        document.addEventListener("click", (e) => {
+            if (!e.target.closest(".tool-btn[title='Color'], .tool-btn[title='Font']")) {
+                this.dropdownElements.forEach((dropdown, btn) => {
+                    dropdown.style.opacity = "0";
+                    dropdown.style.pointerEvents = "none";
+                    dropdown.style.transform = btn.closest("#right-panel") ? "translateX(100%)" : "translateX(-100%)";
+                });
+                this.activeDropdownBtn = null;
+            }
+        });
 
         window.addEventListener("keydown", (e) => {
             if (e.ctrlKey && e.key === "z") this.undo();
@@ -263,7 +276,10 @@ class PetriNetCanvas {
                     const option = document.createElement("div");
                     option.className = "color-option";
                     option.style.backgroundColor = color;
-                    option.addEventListener("click", () => this.changeAnnotationColor(color));
+                    option.addEventListener("click", () => {
+                        this.changeAnnotationColor(color);
+                        this.closeDropdown(btn); // Close after selection
+                    });
                     dropdown.appendChild(option);
                 });
             } else if (type === "font-picker") {
@@ -277,7 +293,11 @@ class PetriNetCanvas {
                     option.textContent = font;
                     fontSelect.appendChild(option);
                 });
-                fontSelect.addEventListener("change", () => this.changeAnnotationFont(fontSelect.value, parseInt(document.getElementById("fontSizeSelect").value)));
+                fontSelect.addEventListener("change", () => {
+                    const size = parseInt(document.getElementById("fontSizeSelect").value);
+                    this.changeAnnotationFont(fontSelect.value, size);
+                    this.closeDropdown(btn); // Close after selection
+                });
                 dropdown.appendChild(fontSelect);
 
                 const sizeSelect = document.createElement("select");
@@ -288,7 +308,11 @@ class PetriNetCanvas {
                     option.textContent = size;
                     sizeSelect.appendChild(option);
                 });
-                sizeSelect.addEventListener("change", () => this.changeAnnotationFont(document.getElementById("fontFamilySelect").value, parseInt(sizeSelect.value)));
+                sizeSelect.addEventListener("change", () => {
+                    const font = document.getElementById("fontFamilySelect").value;
+                    this.changeAnnotationFont(font, parseInt(sizeSelect.value));
+                    this.closeDropdown(btn); // Close after selection
+                });
                 dropdown.appendChild(sizeSelect);
             }
         }
@@ -299,39 +323,33 @@ class PetriNetCanvas {
         
         // Position for left panel (slide right-to-left)
         if (!isRightPanel) {
-            dropdown.style.left = `${rect.right}px`; // Slide from left edge of button
+            dropdown.style.left = `${rect.right}px`;
             dropdown.style.top = `${rect.top}px`;
-            dropdown.style.transform = "translateX(-100%)"; // Slide left
+            dropdown.style.transform = "translateX(-100%)";
         } 
         // Position for right panel (slide left-to-right)
         else {
-            dropdown.style.right = `${window.innerWidth - rect.left}px`; // Slide from right edge of button
+            dropdown.style.right = `${window.innerWidth - rect.left}px`;
             dropdown.style.top = `${rect.top}px`;
-            dropdown.style.transform = "translateX(100%)"; // Slide right
+            dropdown.style.transform = "translateX(100%)";
         }
 
         dropdown.style.opacity = "0";
         dropdown.style.pointerEvents = "none";
 
-        // Toggle visibility
-        if (dropdown.style.opacity === "0" || dropdown.style.opacity === "") {
+        // Toggle visibility and track active dropdown
+        if (this.activeDropdownBtn === btn) {
+            this.closeDropdown(btn); // Re-click to close
+            this.activeDropdownBtn = null;
+        } else {
+            if (this.activeDropdownBtn) this.closeDropdown(this.activeDropdownBtn); // Close previous
             dropdown.style.opacity = "1";
             dropdown.style.pointerEvents = "auto";
             dropdown.style.transform = "translateX(0)";
-        } else {
-            dropdown.style.opacity = "0";
-            dropdown.style.pointerEvents = "none";
-            dropdown.style.transform = isRightPanel ? "translateX(100%)" : "translateX(-100%)";
+            this.activeDropdownBtn = btn;
         }
 
-        // Close other dropdowns
-        this.dropdownElements.forEach((otherDropdown, otherBtn) => {
-            if (otherBtn !== btn) {
-                otherDropdown.style.opacity = "0";
-                otherDropdown.style.pointerEvents = "none";
-                otherDropdown.style.transform = otherBtn.closest("#right-panel") ? "translateX(100%)" : "translateX(-100%)";
-            }
-        });
+        // Close dropdowns on outside click (handled in document.click)
     }
 
     renderLoop() {
@@ -2385,6 +2403,16 @@ class PetriNetCanvas {
         this.designExists = state.designExists;
         this.updateStatus("State restored", this.isSmartModel ? "S-Model" : "T-Model");
         console.log("State restored");
+    }
+
+    closeDropdown(btn) {
+        const dropdown = this.dropdownElements.get(btn);
+        if (dropdown) {
+            const isRightPanel = btn.closest("#right-panel");
+            dropdown.style.opacity = "0";
+            dropdown.style.pointerEvents = "none";
+            dropdown.style.transform = isRightPanel ? "translateX(100%)" : "translateX(-100%)";
+        }
     }
 
     changeAnnotationColor(color) {
