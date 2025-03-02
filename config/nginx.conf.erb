@@ -1,0 +1,7 @@
+server {
+    listen 80;
+    location / {
+        root <%= ENV["NGINX_ROOT"] || "/app" %>;
+        index index.html;
+    }
+}
