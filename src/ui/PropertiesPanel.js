@@ -1,5 +1,5 @@
 import { createIcons, icons } from 'lucide';
-
+import { Place, Transition, Arc, Initializer, Annotation } from '../models/elements.js';
 export class PropertiesPanel {
     constructor(containerId, onPropertyChange) {
         this.container = document.getElementById(containerId);
@@ -30,7 +30,15 @@ export class PropertiesPanel {
         this.selectedElement = element;
         this.container.classList.add('visible');
         const content = document.getElementById('prop-content');
-        document.getElementById('prop-title').textContent = element.constructor.name + ' Properties';
+        
+        let typeName = 'Element';
+        if (element instanceof Place) typeName = 'Place';
+        else if (element instanceof Transition) typeName = 'Transition';
+        else if (element instanceof Arc) typeName = 'Arc';
+        else if (element instanceof Initializer) typeName = 'Initializer';
+        else if (element instanceof Annotation) typeName = 'Annotation';
+        
+        document.getElementById('prop-title').textContent = typeName + ' Properties';
         
         content.innerHTML = '';
         
@@ -39,7 +47,7 @@ export class PropertiesPanel {
             content.appendChild(this.createInputGroup('Name', 'name', element.name));
         }
 
-        if (element.constructor.name === 'Place') {
+        if (element instanceof Place) {
             if (isSmartModel && element.tokens > 0) {
                 content.appendChild(this.createInputGroup('Token Value', 'tokenValue', element.getTokenValue(), 'number'));
             } else if (!isSmartModel) {
@@ -47,7 +55,7 @@ export class PropertiesPanel {
             }
         }
 
-        if (element.constructor.name === 'Transition') {
+        if (element instanceof Transition) {
             if (isSmartModel) {
                 content.appendChild(this.createInputGroup('Task (e.g., +, -, cp)', 'task', element.task.task));
                 content.appendChild(this.createInputGroup('Token Order (e.g., P1, P2)', 'tokenOrder', element.tokenOrder));
@@ -57,13 +65,13 @@ export class PropertiesPanel {
             }
         }
 
-        if (element.constructor.name === 'Arc') {
+        if (element instanceof Arc) {
             if (!isSmartModel) {
                 content.appendChild(this.createInputGroup('Weight', 'weight', element.weight, 'number'));
             }
         }
 
-        if (element.constructor.name === 'Initializer') {
+        if (element instanceof Initializer) {
             content.appendChild(this.createInputGroup('Tokens to Generate', 'tokensToGenerate', element.tokensToGenerate, 'number'));
             content.appendChild(this.createInputGroup('Tokens / Second', 'tokensPerSecond', element.tokensPerSecond, 'number', '0.1'));
             content.appendChild(this.createCheckboxGroup('Continuous', 'isContinuous', element.isContinuous));
@@ -72,7 +80,7 @@ export class PropertiesPanel {
             }
         }
 
-        if (element.constructor.name === 'Annotation') {
+        if (element instanceof Annotation) {
             content.appendChild(this.createTextAreaGroup('Text', 'text', element.text));
             content.appendChild(this.createSelectGroup('Font', 'fontName', element.fontName, [
                 { value: 'Arial', label: 'Arial' },
