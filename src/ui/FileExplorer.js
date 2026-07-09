@@ -10,10 +10,11 @@ export class FileExplorer {
 
     async open() {
         const footer = `
+            <button class="modal-btn" id="fe-save-current" style="background: var(--accent-primary); border-color: var(--accent-primary);"><i data-lucide="save"></i> Save Current Design Here</button>
+            <div style="flex:1"></div>
             <button class="modal-btn" id="fe-new-folder"><i data-lucide="folder-plus"></i> New Folder</button>
             <button class="modal-btn" id="fe-export-all"><i data-lucide="archive"></i> Export All</button>
-            <div style="flex:1"></div>
-            <label class="modal-btn" style="background: var(--accent-primary); border-color: var(--accent-primary); cursor: pointer;">
+            <label class="modal-btn" style="cursor: pointer;">
                 <i data-lucide="upload"></i> Upload JSON
                 <input type="file" id="fe-upload-input" accept=".json" multiple style="display:none;">
             </label>
@@ -27,6 +28,7 @@ export class FileExplorer {
         this.container = document.getElementById('fe-container');
         this.breadcrumb = document.getElementById('fe-breadcrumb');
         
+        document.getElementById('fe-save-current').addEventListener('click', () => this.saveCurrentDesign());
         document.getElementById('fe-new-folder').addEventListener('click', () => this.createNewFolder());
         document.getElementById('fe-export-all').addEventListener('click', () => this.exportAllZip());
         document.getElementById('fe-upload-input').addEventListener('change', (e) => this.handleUpload(e));
@@ -148,6 +150,10 @@ export class FileExplorer {
             const actions = document.createElement('div');
             actions.className = 'fe-actions';
             
+            const dlBtn = document.createElement('button');
+            dlBtn.innerHTML = '<i data-lucide="download"></i>';
+            dlBtn.onclick = (e) => { e.stopPropagation(); this.downloadItem(item.id, type, item.name); };
+            
             const renBtn = document.createElement('button');
             renBtn.innerHTML = '<i data-lucide="edit-2"></i>';
             renBtn.onclick = (e) => { e.stopPropagation(); this.renameItem(item.id, type, item.name); };
@@ -156,6 +162,7 @@ export class FileExplorer {
             delBtn.innerHTML = '<i data-lucide="trash-2"></i>';
             delBtn.onclick = (e) => { e.stopPropagation(); this.deleteItem(item.id, type); };
             
+            actions.appendChild(dlBtn);
             actions.appendChild(renBtn);
             actions.appendChild(delBtn);
             div.appendChild(actions);
@@ -176,6 +183,73 @@ export class FileExplorer {
         });
 
         return div;
+    }
+
+    async saveCurrentDesign() {
+        const defaultName = this.app.designState.currentFileName || 'Copy of Design';
+        const name = await this.promptInput("Save Design As:", defaultName);
+        if (!name) return;
+        
+        const { Saver } = await import('../models/state.js');
+        const design = Saver.save(this.app);
+        const json = JSON.stringify(design, null, 2);
+        
+        const savedFile = await this.fs.saveFile(null, name, this.currentFolderId, json);
+        this.app.designState.currentFileName = name;
+        this.app.designState.currentFileId = savedFile.id;
+        this.app.designState.setUnsavedChanges();
+        await this.app.saveLocalDesign();
+        this.render();
+        this.app.modalManager.close();
+    }
+
+    async downloadItem(id, type, name) {
+        if (type === 'file') {
+            const file = await this.fs.getFile(id);
+            const blob = new Blob([file.content], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${name}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } else if (type === 'folder') {
+            const zip = new JSZip();
+            const files = await this.fs.getFiles();
+            const folders = await this.fs.getFolders();
+            
+            const getPath = (fId, currentPath) => {
+                const folder = folders.find(x => x.id === fId);
+                if (!folder || folder.id === id) return currentPath;
+                return getPath(folder.parentId, folder.name + "/" + currentPath);
+            };
+
+            // Recursive function to add folder contents
+            const addContentsToZip = (currentFolderId, zipFolder) => {
+                const subFolders = folders.filter(f => f.parentId === currentFolderId);
+                const currentFiles = files.filter(f => f.folderId === currentFolderId);
+                
+                currentFiles.forEach(f => {
+                    zipFolder.file(f.name + ".json", f.content);
+                });
+                
+                subFolders.forEach(f => {
+                    const subZipFolder = zipFolder.folder(f.name);
+                    addContentsToZip(f.id, subZipFolder);
+                });
+            };
+
+            const rootZipFolder = zip.folder(name);
+            addContentsToZip(id, rootZipFolder);
+
+            const blob = await zip.generateAsync({ type: "blob" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${name}.zip`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
     }
 
     async promptInput(title, defaultValue = '') {

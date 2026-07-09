@@ -609,15 +609,9 @@ class PetriNetApp {
         }
     }
 
-    async saveAsLocalDesign() {
-        const newName = prompt('Enter new file name for this copy:', this.designState.currentFileName || 'Copy of Design');
-        if (newName) {
-            this.designState.currentFileName = newName;
-            this.designState.currentFileId = null; // Force a new file to be created
-            this.designState.setUnsavedChanges();
-            await this.saveLocalDesign();
-            if (this.fileExplorer) this.fileExplorer.render();
-            this.updateUI();
+    saveAsLocalDesign() {
+        if (this.fileExplorer) {
+            this.fileExplorer.open();
         }
     }
 
