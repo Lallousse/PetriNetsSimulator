@@ -1,6 +1,7 @@
 /**
  * UI handling for dialogs, panels, and user interactions
  */
+import { formatNumber } from './utils.js';
 
 export class AlgoVizUI {
     constructor() {
@@ -322,23 +323,32 @@ export class AlgoVizUI {
         }
     }
     
-    // Set button text
-    setButtonText(buttonId, text) {
+    // Utility to update button text/icon (modified for pure icon UI)
+    updateToolButton(buttonId, iconName, tooltipText) {
         const button = document.getElementById(buttonId);
-        button.innerHTML = text;
+        if (button) {
+            button.setAttribute('data-tooltip', tooltipText);
+            button.innerHTML = `<i data-lucide="${iconName}"></i>`;
+            if (window.lucide) {
+                window.lucide.createIcons({
+                    icons: window.lucide,
+                    nameAttr: 'data-lucide'
+                });
+            }
+        }
     }
     
     // Enter start node selection mode
     enterStartNodeSelectionMode() {
         this.selectingStartNode = true;
-        this.setButtonText('select-start-node-btn', '<i class="fas fa-hand-pointer"></i> Selecting... Click a Node');
+        this.updateToolButton('select-start-node-btn', 'mouse-pointer-2', 'Selecting... Click a Node');
         this.updateExplanation('Click on a node to select it as the start node.');
     }
     
     // Exit start node selection mode
     exitStartNodeSelectionMode() {
         this.selectingStartNode = false;
-        this.setButtonText('select-start-node-btn', '<i class="fas fa-hand-pointer"></i> Select Start Node');
+        this.updateToolButton('select-start-node-btn', 'crosshair', 'Select Start Node');
     }
     
     // Check if in start node selection mode

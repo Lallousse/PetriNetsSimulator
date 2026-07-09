@@ -366,7 +366,7 @@ export function initAlgoViz(appContext) {
         
         // Show the steps panel automatically
         ui.toggleStepsPanel(true);
-        ui.setButtonText('toggle-steps-panel-btn', '<i class="fas fa-eye-slash"></i> Hide Steps Panel');
+        ui.updateToolButton('toggle-steps-panel-btn', 'eye-off', 'Hide Steps Panel');
         
         // Start the playback
         nextStep();
@@ -380,12 +380,10 @@ export function initAlgoViz(appContext) {
         isPaused = !isPaused;
         
         if (isPaused) {
-            // Pause
-            ui.setButtonText('pause-btn', '<i class="fas fa-play"></i> Resume');
+            ui.updateToolButton('pause-btn', 'play', 'Resume');
             stopPlayback();
         } else {
-            // Resume
-            ui.setButtonText('pause-btn', '<i class="fas fa-pause"></i> Pause');
+            ui.updateToolButton('pause-btn', 'pause', 'Pause');
             startPlayback();
         }
     }
@@ -425,16 +423,18 @@ export function initAlgoViz(appContext) {
         const panel = document.getElementById('floating-steps-panel');
         if (panel.classList.contains('hidden')) {
             ui.toggleStepsPanel(true);
-            ui.setButtonText('toggle-steps-panel-btn', '<i class="fas fa-eye-slash"></i> Hide Steps Panel');
+            ui.updateToolButton('toggle-steps-panel-btn', 'eye-off', 'Hide Steps Panel');
         }
         
         currentStepIndex++;
         applyStep(currentStepIndex);
         
-        // If this is the last step, update UI
-        if (currentStepIndex === visualizationSteps.length - 1) {
+        // Check if finished
+        if (currentStepIndex >= visualizationSteps.length - 1) {
+            isPlaying = false;
             stopPlayback();
-            ui.setButtonText('next-btn', '<i class="fas fa-redo"></i> Restart');
+            ui.setButtonEnabled('pause-btn', false);
+            ui.updateToolButton('next-btn', 'rotate-ccw', 'Restart');
         }
     }
     
@@ -485,7 +485,7 @@ export function initAlgoViz(appContext) {
             
             // Hide the steps panel and update button
             ui.toggleStepsPanel(false);
-            ui.setButtonText('toggle-steps-panel-btn', '<i class="fas fa-table"></i> Show Steps Panel');
+            ui.updateToolButton('toggle-steps-panel-btn', 'list', 'Show Steps Panel');
         }
         
         // Reset the graph visual state
@@ -497,8 +497,8 @@ export function initAlgoViz(appContext) {
         ui.setButtonEnabled('next-btn', resetAlgorithm ? false : true);
         ui.setButtonEnabled('start-btn', true);
         ui.setButtonEnabled('toggle-steps-panel-btn', !resetAlgorithm && currentTableData !== null);
-        ui.setButtonText('pause-btn', '<i class="fas fa-pause"></i> Pause');
-        ui.setButtonText('next-btn', '<i class="fas fa-step-forward"></i> Next');
+        ui.updateToolButton('pause-btn', 'pause', 'Pause');
+        ui.updateToolButton('next-btn', 'skip-forward', 'Next Step');
         
         // Update explanation
         if (resetAlgorithm) {
@@ -536,10 +536,10 @@ export function initAlgoViz(appContext) {
         
         ui.toggleStepsPanel(!isVisible);
         
-        if (!isVisible) {
-            ui.setButtonText('toggle-steps-panel-btn', '<i class="fas fa-eye-slash"></i> Hide Steps Panel');
+        if (isVisible) {
+            ui.updateToolButton('toggle-steps-panel-btn', 'eye-off', 'Hide Steps Panel');
         } else {
-            ui.setButtonText('toggle-steps-panel-btn', '<i class="fas fa-table"></i> Show Steps Panel');
+            ui.updateToolButton('toggle-steps-panel-btn', 'list', 'Show Steps Panel');
         }
     }
     
