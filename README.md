@@ -12,7 +12,7 @@ AlgoViz Studio gives you the best of two worlds in one unified app:
 
 ## How to Use the Studio
 ### Getting Started
-1. **Access the App**: Open AlgoViz Studio by visiting the live URL (https://lallousse.github.io/PetriNetsSimulator/).
+1. **Access the App**: Open AlgoViz Studio by visiting the live URL (https://lallousse.github.io/AlgoViz-Studio/).
 2. **Switch Platforms**: Use the Platform Switch in the top-right to toggle between "PetriNet" and "AlgoViz".
 3. **Choose a Model Type (PetriNet)**: Select either the Traditional Model (T-Model) or the Smart Model (S-Model).
 
