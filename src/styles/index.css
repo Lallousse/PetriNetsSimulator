@@ -1,3 +1,5 @@
+@import url('./algoviz.css');
+
 :root {
   --bg-primary: #0f0f14;
   --bg-secondary: #1a1a24;
@@ -150,7 +152,7 @@ canvas {
   border-radius: 12px;
 }
 
-#top-toolbar {
+#top-toolbar, #algoviz-top-toolbar {
   top: 16px;
   left: 50%;
   transform: translateX(-50%);
@@ -164,7 +166,7 @@ canvas {
   gap: 4px;
 }
 
-#top-toolbar .tool-group {
+#top-toolbar .tool-group, #algoviz-top-toolbar .tool-group {
   flex-direction: row;
 }
 
@@ -175,7 +177,7 @@ canvas {
   margin: 4px 0;
 }
 
-#top-toolbar .toolbar-divider {
+#top-toolbar .toolbar-divider, #algoviz-top-toolbar .toolbar-divider {
   width: 1px;
   height: auto;
   margin: 0 4px;
@@ -232,7 +234,9 @@ canvas {
   transform: translateY(-50%);
 }
 
-#top-toolbar .tool-btn[data-tooltip]::after {
+#top-toolbar .tool-btn[data-tooltip]::after,
+#algoviz-top-toolbar .tool-btn[data-tooltip]::after,
+#algoviz-control-panel .tool-btn[data-tooltip]::after {
   top: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);

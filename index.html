@@ -3,50 +3,219 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Petri Net Simulator</title>
+    <title>AlgoViz Studio</title>
 </head>
 <body>
     <div id="splash">
         <div class="spinner"></div>
-        <div style="font-size: 1.5rem; font-weight: 600; color: #e2e8f0;">PetriNet Simulator</div>
+        <div style="font-size: 1.5rem; font-weight: 600; color: #e2e8f0;">AlgoViz Studio</div>
         <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 8px;">Loading environment...</div>
     </div>
 
+    <!-- MAIN APP CONTAINER -->
     <div id="app">
         <div id="warning-banner" class="warning-banner" style="display: none;">
             <span>Note: Designs saved locally are only available in this browser. Please use Export to download your design for use on other browsers/devices.</span>
             <button class="warning-close" id="warning-close-btn">&times;</button>
         </div>
-        <!-- Canvas -->
-        <div class="canvas-container">
-            <canvas id="petrinet-canvas"></canvas>
+        
+        <!-- PLATFORM 1: PETRI NET SIMULATOR -->
+        <div id="petrinet-app" style="display: block; width: 100%; height: 100%;">
+            <div class="canvas-container">
+                <canvas id="petrinet-canvas"></canvas>
+            </div>
+            <div id="left-toolbar" class="toolbar"></div>
+            <div id="top-toolbar" class="toolbar"></div>
+            <div id="properties-panel"></div>
         </div>
 
-        <!-- Toolbars -->
-        <div id="left-toolbar" class="toolbar"></div>
-        <div id="top-toolbar" class="toolbar"></div>
+        <!-- PLATFORM 2: ALGOVIZ -->
+        <div id="algoviz-app" style="display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0;">
+            <div id="algoviz-top-toolbar" class="toolbar"></div>
+            
+            <div class="algoviz-main-content">
+                <!-- AlgoViz Control Panel (Left Sidebar) -->
+                <div id="algoviz-control-panel" class="control-panel">
+                    <!-- Graph Info Dashboard (Pill) -->
+                    <div class="card" style="padding: 0.75rem 1rem; display: flex; flex-direction: row; justify-content: space-around; align-items: center; border-radius: 50px;">
+                        <div class="info-item" style="display: flex; flex-direction: column; align-items: center; gap: 0.2rem; border-bottom: none;">
+                            <span class="info-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary);">Nodes</span>
+                            <span id="node-count" class="info-value" style="font-size: 1.25rem; font-weight: 700; color: var(--accent-primary);">0</span>
+                        </div>
+                        <div style="width: 1px; height: 30px; background: var(--border-color);"></div>
+                        <div class="info-item" style="display: flex; flex-direction: column; align-items: center; gap: 0.2rem; border-bottom: none;">
+                            <span class="info-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary);">Edges</span>
+                            <span id="edge-count" class="info-value" style="font-size: 1.25rem; font-weight: 700; color: var(--accent-secondary);">0</span>
+                        </div>
+                    </div>
 
-        <!-- Controls Panel -->
-        <div id="controls-panel" style="position: absolute; top: 16px; right: 16px; z-index: 10; display: flex; gap: 12px; flex-direction: column;">
-            <div class="segmented-control" id="theme-switch" style="width: 160px;">
+                    <!-- Drawing Tools Card -->
+                    <div class="card">
+                        <h2><i data-lucide="edit-3"></i> Drawing Tools</h2>
+                        <div class="button-group icon-grid">
+                            <button id="select-move-btn" class="btn active tool-btn" data-tooltip="Select/Move">
+                                <i data-lucide="mouse-pointer-2"></i>
+                            </button>
+                            <button id="add-node-btn" class="btn tool-btn" data-tooltip="Add Node">
+                                <i data-lucide="plus-circle"></i>
+                            </button>
+                            <button id="add-edge-btn" class="btn tool-btn" data-tooltip="Add Edge">
+                                <i data-lucide="git-commit"></i>
+                            </button>
+                            <button id="flip-edge-btn" class="btn tool-btn" data-tooltip="Flip Direction (Select edge first)">
+                                <i data-lucide="arrow-left-right"></i>
+                            </button>
+                            <button id="delete-selected-btn" class="btn disabled tool-btn" data-tooltip="Delete Selected">
+                                <i data-lucide="trash-2"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Algorithm Controls Card -->
+                    <div class="card">
+                        <h2><i data-lucide="cpu"></i> Algorithm Controls</h2>
+                        
+                        <div class="algorithm-selector" style="margin-bottom: 1rem;">
+                            <label for="algorithm-select" style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500;">Algorithm:</label>
+                            <select id="algorithm-select" class="select">
+                                <option value="prim">Prim's Algorithm</option>
+                                <option value="kruskal">Kruskal's Algorithm</option>
+                                <option value="dijkstra">Dijkstra's Algorithm</option>
+                                <option value="bellmanFord">Bellman-Ford Algorithm</option>
+                            </select>
+                        </div>
+
+                        <div id="start-node-container" class="hidden" style="margin-bottom: 1rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 0.8rem; color: var(--text-secondary);">Start Node:</span>
+                            <span id="start-node" style="font-weight: 600; color: var(--accent-success);">None</span>
+                        </div>
+                        
+                        <div class="button-group icon-grid algorithm-buttons" style="margin-bottom: 1rem;">
+                            <button id="select-start-node-btn" class="btn tool-btn" data-tooltip="Select Start Node">
+                                <i data-lucide="crosshair"></i>
+                            </button>
+                            <button id="start-btn" class="btn primary disabled tool-btn" data-tooltip="Start Visualization">
+                                <i data-lucide="play"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="button-group icon-grid control-buttons">
+                            <button id="pause-btn" class="btn disabled tool-btn" data-tooltip="Pause">
+                                <i data-lucide="pause"></i>
+                            </button>
+                            <button id="next-btn" class="btn tool-btn" data-tooltip="Next Step">
+                                <i data-lucide="step-forward"></i>
+                            </button>
+                            <button id="reset-btn" class="btn tool-btn" data-tooltip="Reset Graph">
+                                <i data-lucide="rotate-ccw"></i>
+                            </button>
+                            <button id="toggle-steps-panel-btn" class="btn disabled tool-btn" data-tooltip="Show Steps Panel">
+                                <i data-lucide="list"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="algoviz-canvas-container">
+                    <svg id="graph-canvas" class="graph-canvas" style="width: 100%; height: 100%;"></svg>
+                </div>
+            </div>
+
+            <!-- Floating Explanation Panel -->
+            <div id="explanation-panel" class="floating-panel explanation-panel">
+                <div class="panel-header">
+                    <div class="drag-handle"><i data-lucide="grip-vertical"></i></div>
+                    <h3><i data-lucide="lightbulb"></i> Explanation</h3>
+                    <div class="panel-controls">
+                        <button id="pin-explanation-btn" class="pin-btn" title="Pin/Unpin Panel">
+                            <i data-lucide="pin"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div id="explanation-text" class="explanation">
+                        Welcome to AlgoViz! Select a drawing tool to create your graph, then choose an algorithm to visualize.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Floating Steps Panel -->
+            <div id="floating-steps-panel" class="floating-panel hidden">
+                <div class="panel-header">
+                    <div class="drag-handle"><i data-lucide="grip-vertical"></i></div>
+                    <h3><i data-lucide="list-ordered"></i> Algorithm Steps</h3>
+                    <div class="panel-controls">
+                        <button id="close-panel-btn" class="close-btn" title="Close Panel"><i data-lucide="x"></i></button>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <div id="algorithm-steps-table" class="steps-table"></div>
+                </div>
+            </div>
+
+            <!-- Node Editor Dialog -->
+            <div id="node-editor-dialog" class="dialog hidden">
+                <div class="dialog-content">
+                    <h3><i data-lucide="edit"></i> Edit Node</h3>
+                    <div class="form-group">
+                        <label for="node-name-input">Name:</label>
+                        <input type="text" id="node-name-input" class="input">
+                    </div>
+                    <div class="dialog-buttons">
+                        <button id="save-node-btn" class="btn primary">Save</button>
+                        <button id="cancel-node-btn" class="btn">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edge Editor Dialog -->
+            <div id="edge-editor-dialog" class="dialog hidden">
+                <div class="dialog-content">
+                    <h3><i data-lucide="edit"></i> Edit Edge</h3>
+                    <div class="form-group">
+                        <label for="edge-weight-input">Weight:</label>
+                        <input type="number" id="edge-weight-input" class="input" min="1" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="edge-directed-input">
+                            <span>Is Directed</span>
+                        </label>
+                    </div>
+                    <div class="dialog-buttons">
+                        <button id="save-edge-btn" class="btn primary">Save</button>
+                        <button id="cancel-edge-btn" class="btn">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- SHARED CONTROLS PANEL -->
+        <div id="controls-panel" style="position: absolute; top: 16px; right: 16px; z-index: 10; display: flex; gap: 12px; flex-direction: row; flex-wrap: wrap; justify-content: flex-end; max-width: 380px;">
+            <div class="segmented-control" id="platform-switch" style="width: 180px;">
+                <div class="segment-active-bg" style="width: calc(50% - 4px); left: 4px;"></div>
+                <button class="segment-btn active" data-value="petrinet" style="width: 50%; justify-content: center;"><i data-lucide="layout-template" style="width: 14px; height: 14px;"></i> PetriNet</button>
+                <button class="segment-btn" data-value="algoviz" style="width: 50%; justify-content: center;"><i data-lucide="share-2" style="width: 14px; height: 14px;"></i> AlgoViz</button>
+            </div>
+            
+            <div class="segmented-control" id="theme-switch" style="width: 180px;">
                 <div class="segment-active-bg" style="width: calc(50% - 4px); left: 4px;"></div>
                 <button class="segment-btn active" data-value="dark" style="width: 50%; justify-content: center;"><i data-lucide="moon" style="width: 14px; height: 14px;"></i> Dark</button>
                 <button class="segment-btn" data-value="light" style="width: 50%; justify-content: center;"><i data-lucide="sun" style="width: 14px; height: 14px;"></i> Light</button>
             </div>
             
-            <div class="segmented-control" id="model-switch" style="width: 160px;">
+            <div class="segmented-control" id="model-switch" style="width: 180px;">
                 <div class="segment-active-bg" style="width: calc(50% - 4px); left: 4px;"></div>
                 <button class="segment-btn active" data-value="T" style="width: 50%; justify-content: center;"><i data-lucide="circle" style="width: 14px; height: 14px;"></i> T-Model</button>
                 <button class="segment-btn" data-value="S" style="width: 50%; justify-content: center;"><i data-lucide="zap" style="width: 14px; height: 14px;"></i> S-Model</button>
             </div>
         </div>
 
-        <!-- Properties Panel -->
-        <div id="properties-panel"></div>
-
-        <!-- Status Bar -->
+        <!-- Shared Status Bar -->
         <div id="status-bar">
             <div class="status-left">
+                <span id="platform-badge" class="model-badge t-model">PetriNet</span>
                 <span id="model-badge" class="model-badge t-model">T-Model</span>
                 <span style="color: var(--text-muted);">|</span>
                 <span id="file-name-display" style="font-weight: 500;">Untitled</span>

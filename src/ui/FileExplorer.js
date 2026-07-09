@@ -4,7 +4,6 @@ import JSZip from 'jszip';
 export class FileExplorer {
     constructor(app) {
         this.app = app;
-        this.fs = app.fs;
         this.currentFolderId = null; // null means root
     }
 
@@ -48,7 +47,7 @@ export class FileExplorer {
         this.breadcrumb.appendChild(rootLink);
 
         if (this.currentFolderId) {
-            const allFolders = await this.fs.getFolders();
+            const allFolders = await this.app.fs.getFolders();
             let path = [];
             let curr = allFolders.find(f => f.id === this.currentFolderId);
             while(curr) {
@@ -69,8 +68,8 @@ export class FileExplorer {
         }
 
         // Fetch items
-        const folders = await this.fs.getFolders();
-        const files = await this.fs.getFiles();
+        const folders = await this.app.fs.getFolders();
+        const files = await this.app.fs.getFiles();
         
         const currentFolders = folders.filter(f => f.parentId === this.currentFolderId);
         const currentFiles = files.filter(f => f.folderId === this.currentFolderId);
@@ -121,15 +120,15 @@ export class FileExplorer {
                 if (data.id === item.id) return; // can't drop into itself
                 
                 if (data.type === 'file') {
-                    const file = await this.fs.getFile(data.id);
+                    const file = await this.app.fs.getFile(data.id);
                     file.folderId = type === 'folder-back' ? item.id : item.id;
-                    await this.fs.updateFile(file);
+                    await this.app.fs.updateFile(file);
                 } else if (data.type === 'folder') {
                     // Get all folders to find target
-                    const allFolders = await this.fs.getFolders();
+                    const allFolders = await this.app.fs.getFolders();
                     const draggedFolder = allFolders.find(f => f.id === data.id);
                     draggedFolder.parentId = type === 'folder-back' ? item.id : item.id;
-                    await this.fs.updateFolder(draggedFolder);
+                    await this.app.fs.updateFolder(draggedFolder);
                 }
                 this.render();
             });
@@ -176,7 +175,7 @@ export class FileExplorer {
                 this.currentFolderId = item.id || null;
                 this.render();
             } else if (type === 'file') {
-                const file = await this.fs.getFile(item.id);
+                const file = await this.app.fs.getFile(item.id);
                 this.app.loadFromLocalFile(file);
                 this.app.modalManager.close();
             }
@@ -194,7 +193,7 @@ export class FileExplorer {
         const design = Saver.save(this.app);
         const json = JSON.stringify(design, null, 2);
         
-        const savedFile = await this.fs.saveFile(null, name, this.currentFolderId, json);
+        const savedFile = await this.app.fs.saveFile(null, name, this.currentFolderId, json);
         this.app.designState.currentFileName = name;
         this.app.designState.currentFileId = savedFile.id;
         this.app.designState.setUnsavedChanges();
@@ -205,7 +204,7 @@ export class FileExplorer {
 
     async downloadItem(id, type, name) {
         if (type === 'file') {
-            const file = await this.fs.getFile(id);
+            const file = await this.app.fs.getFile(id);
             const blob = new Blob([file.content], { type: "application/json" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -215,8 +214,8 @@ export class FileExplorer {
             URL.revokeObjectURL(url);
         } else if (type === 'folder') {
             const zip = new JSZip();
-            const files = await this.fs.getFiles();
-            const folders = await this.fs.getFolders();
+            const files = await this.app.fs.getFiles();
+            const folders = await this.app.fs.getFolders();
             
             const getPath = (fId, currentPath) => {
                 const folder = folders.find(x => x.id === fId);
@@ -316,7 +315,7 @@ export class FileExplorer {
     async createNewFolder() {
         const name = await this.promptInput("New Folder Name:");
         if (!name) return;
-        await this.fs.createFolder(name, this.currentFolderId);
+        await this.app.fs.createFolder(name, this.currentFolderId);
         this.render();
     }
 
@@ -328,7 +327,7 @@ export class FileExplorer {
                 // Verify it's a valid JSON before saving
                 JSON.parse(text);
                 const name = f.name.replace('.json', '');
-                await this.fs.saveFile(null, name, this.currentFolderId, text);
+                await this.app.fs.saveFile(null, name, this.currentFolderId, text);
             } catch (err) {
                 alert(`Invalid JSON file: ${f.name}`);
             }
@@ -341,14 +340,14 @@ export class FileExplorer {
         if (!newName || newName === oldName) return;
 
         if (type === 'folder') {
-            const folders = await this.fs.getFolders();
+            const folders = await this.app.fs.getFolders();
             const f = folders.find(x => x.id === id);
             f.name = newName;
-            await this.fs.updateFolder(f);
+            await this.app.fs.updateFolder(f);
         } else {
-            const f = await this.fs.getFile(id);
+            const f = await this.app.fs.getFile(id);
             f.name = newName;
-            await this.fs.updateFile(f);
+            await this.app.fs.updateFile(f);
             if (this.app.designState.currentFileId === id) {
                 this.app.designState.currentFileName = newName;
                 this.app.updateUI();
@@ -362,9 +361,9 @@ export class FileExplorer {
         if (!confirmed) return;
 
         if (type === 'folder') {
-            await this.fs.deleteFolder(id);
+            await this.app.fs.deleteFolder(id);
         } else {
-            await this.fs.deleteFile(id);
+            await this.app.fs.deleteFile(id);
             if (this.app.designState.currentFileId === id) {
                 this.app.designState.currentFileId = null;
             }
@@ -374,8 +373,8 @@ export class FileExplorer {
 
     async exportAllZip() {
         const zip = new JSZip();
-        const files = await this.fs.getFiles();
-        const folders = await this.fs.getFolders();
+        const files = await this.app.fs.getFiles();
+        const folders = await this.app.fs.getFolders();
 
         // Helper to build path
         const getPath = (folderId) => {

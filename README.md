@@ -1,15 +1,20 @@
-# Petri Net Simulator Web App
+# AlgoViz Studio (Petri Net Simulator & Graph Algorithms)
 
-The Petri Net Simulator is a free, interactive web-based tool designed to help you create, simulate, and analyze Petri Nets. This project has recently been renovated with a modern technology stack (Vite, ES Modules) and a premium dark UI using glassmorphism and Lucide icons.
+AlgoViz Studio is a free, interactive web-based dual-platform designed to help you create, simulate, and analyze Petri Nets as well as visualize core Graph Algorithms (Prim, Kruskal, Dijkstra, Bellman-Ford). This project is built with a modern technology stack (Vite, ES Modules) and a premium dark UI using glassmorphism and Lucide icons.
 
+> **⚠️ IMPORTANT WARNING REGARDING FILE EXPLORER:**
+> Designs saved using the built-in File Explorer ("Save Local" or "Save As") are stored directly in your browser's IndexedDB. **They are only available on the device and browser where they were created.** To back up your designs or move them to another computer, you **must** use the Export/Download feature to save them as a file to your local computer.
 
-## What is the Petri Net Simulator?
-The Petri Net Simulator is a free, interactive web-based tool designed to help you create, simulate, and analyze Petri Nets. Whether you’re a student learning about Petri Nets, a researcher modeling complex systems, or a professional designing workflows, this app provides an intuitive interface to visualize and test your models in real-time.
+## What is AlgoViz Studio?
+AlgoViz Studio gives you the best of two worlds in one unified app:
+- **Petri Net Simulator:** Create and simulate Petri Nets for educational, research, or professional modeling workflows.
+- **Graph Algorithm Visualizer:** Create graphs and visualize classic algorithms step-by-step.
 
-## How to Use the Simulator
+## How to Use the Studio
 ### Getting Started
-1. **Access the App**: Open the Petri Net Simulator by visiting the live URL (https://lallousse.github.io/PetriNetsSimulator/). No installation is required—just use it in any modern web browser!
-2. **Choose a Model Type**: Select either the Traditional Model (T-Model) for basic Petri Net simulation or the Smart Model (S-Model) for advanced operations like arithmetic on token values (e.g., addition, multiplication) and conditional logic.
+1. **Access the App**: Open AlgoViz Studio by visiting the live URL (https://lallousse.github.io/PetriNetsSimulator/).
+2. **Switch Platforms**: Use the Platform Switch in the top-right to toggle between "PetriNet" and "AlgoViz".
+3. **Choose a Model Type (PetriNet)**: Select either the Traditional Model (T-Model) or the Smart Model (S-Model).
 
 ### Building Your Petri Net
 1. **Add Elements**:

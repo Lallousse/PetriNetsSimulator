@@ -1,6 +1,7 @@
 export class FileSystem {
-    constructor() {
-        this.dbName = 'PetriNetsDB';
+    constructor(platform = 'petrinet') {
+        this.platform = platform;
+        this.dbName = platform === 'algoviz' ? 'AlgoVizDB' : 'PetriNetsDB';
         this.dbVersion = 1;
         this.db = null;
     }

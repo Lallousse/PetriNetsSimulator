@@ -13,6 +13,7 @@ import { PropertiesPanel } from './ui/PropertiesPanel.js';
 import { Place, Transition, Initializer, Annotation, Arc } from './models/elements.js';
 import { FileSystem } from './storage/FileSystem.js';
 import { FileExplorer } from './ui/FileExplorer.js';
+import { initAlgoViz } from './algoviz/AlgoVizApp.js';
 
 class PetriNetApp {
     constructor() {
@@ -36,6 +37,9 @@ class PetriNetApp {
         this.selectedElements = [];
         this.selected = null;
         
+        this.currentPlatform = 'petrinet'; // 'petrinet' or 'algoviz'
+        this.algovizApp = null;
+        
         this.initDOM();
         
         this.designState = new DesignState(this);
@@ -47,10 +51,7 @@ class PetriNetApp {
         this.modalManager = new ModalManager('modal-overlay');
         this.propertiesPanel = new PropertiesPanel('properties-panel', this.onPropertyChange.bind(this));
         
-        this.fs = new FileSystem();
-        this.fs.init().then(() => {
-            this.fileExplorer = new FileExplorer(this);
-        });
+        this.initFileSystem();
 
         this.autoSaveEnabled = localStorage.getItem('petrinet_autosave') === 'true';
 
@@ -75,7 +76,7 @@ class PetriNetApp {
         
         // Auto-save loop
         setInterval(() => {
-            if (this.autoSaveEnabled && this.designState.hasUnsavedChanges()) {
+            if (this.autoSaveEnabled && this.hasUnsavedChanges()) {
                 this.saveLocalDesign(true);
             }
         }, 3000);
@@ -85,6 +86,21 @@ class PetriNetApp {
         this.canvasEl = document.getElementById('petrinet-canvas');
         if (!this.canvasEl) {
             console.error("Canvas element not found!");
+        }
+
+        // Setup Platform Switch
+        const platformBtns = document.querySelectorAll('#platform-switch .segment-btn');
+        const platformBg = document.querySelector('#platform-switch .segment-active-bg');
+        if (platformBtns.length > 0) {
+            platformBtns.forEach((btn, index) => {
+                btn.addEventListener('click', () => {
+                    if (this.currentPlatform === btn.dataset.value) return;
+                    platformBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    platformBg.style.left = index === 0 ? '4px' : 'calc(50% + 2px)';
+                    this.switchPlatform(btn.dataset.value);
+                });
+            });
         }
 
         // Setup Theme Switch
@@ -230,9 +246,20 @@ class PetriNetApp {
                 { id: 'guideBtn', icon: 'help-circle', tooltip: 'Guide', action: () => this.showGuide() }
             ]
         ];
+        const topToolsAlgo = [
+            [
+                { id: 'newAlgoBtn', icon: 'file-plus', tooltip: 'New Design', action: () => this.newDesign() },
+                { id: 'explorerAlgoBtn', icon: 'folder', tooltip: 'File Explorer', action: () => this.fileExplorer && this.fileExplorer.open() },
+                { id: 'saveAlgoBtn', icon: 'save', tooltip: 'Save Local', action: () => this.saveLocalDesign() },
+                { id: 'saveAsAlgoBtn', icon: 'save-all', tooltip: 'Save As', action: () => this.saveAsLocalDesign() },
+                { id: 'exportAlgoBtn', icon: 'download', tooltip: 'Export Design', action: () => this.exportDesign() },
+                { id: 'autoSaveAlgoBtn', icon: 'refresh-cw', tooltip: 'Toggle Auto-Save', action: () => this.toggleAutoSave() }
+            ]
+        ];
 
         this.toolbarLeft = new Toolbar('left-toolbar', leftTools);
         this.toolbarTop = new Toolbar('top-toolbar', topTools);
+        this.algovizToolbarTop = new Toolbar('algoviz-top-toolbar', topToolsAlgo);
         
         this.setMode('select');
     }
@@ -241,7 +268,8 @@ class PetriNetApp {
         const hasDesign = this.designState.hasDesign();
         
         // Update document title
-        const title = `Petri Net Simulator - ${this.designState.currentFileName || "Untitled"}${this.designState.hasUnsavedChanges() ? "*" : ""}`;
+        const unsaved = this.hasUnsavedChanges();
+        const title = `AlgoViz Studio - ${this.designState.currentFileName || "Untitled"}${unsaved ? "*" : ""}`;
         document.title = title;
         document.getElementById('file-name-display').textContent = this.designState.currentFileName || "Untitled";
 
@@ -269,6 +297,7 @@ class PetriNetApp {
         });
         
         this.toolbarTop.setActive('autoSaveBtn', this.autoSaveEnabled, false);
+        this.algovizToolbarTop.setActive('autoSaveAlgoBtn', this.autoSaveEnabled, false);
         this.toolbarTop.setActive('snapBtn', this.snapToGrid, false);
 
         createIcons({ icons, nameAttr: 'data-lucide' });
@@ -469,6 +498,26 @@ class PetriNetApp {
         }
     }
 
+    newDesign(force = false) {
+        if (this.currentPlatform === 'petrinet') {
+            this.clearCanvas(force);
+        } else {
+            const performNew = () => {
+                if (this.algovizApp) {
+                    this.algovizApp.clear();
+                }
+                this.designState.newDesign(null);
+                this.updateUI();
+            };
+            
+            if (this.hasUnsavedChanges() && !force) {
+                this.modalManager.showConfirm('New Design', 'Are you sure you want to create a new design? All unsaved changes will be lost.', performNew);
+            } else {
+                performNew();
+            }
+        }
+    }
+
     clearCanvas(force = false) {
         const performClear = () => {
             this.undoManager.saveState();
@@ -572,8 +621,22 @@ class PetriNetApp {
         if (this.isSaving) return;
         try {
             this.isSaving = true;
-            if (!this.designState.hasDesign()) return;
-            const design = Saver.save(this);
+            
+            let design;
+            if (this.currentPlatform === 'petrinet') {
+                if (!this.designState.hasDesign()) {
+                    this.isSaving = false;
+                    return;
+                }
+                design = Saver.save(this);
+            } else {
+                if (!this.algovizApp) {
+                    this.isSaving = false;
+                    return;
+                }
+                design = this.algovizApp.getState();
+            }
+            
             const json = JSON.stringify(design, null, 2);
             
             const fileName = this.designState.currentFileName || "New Design";
@@ -591,8 +654,14 @@ class PetriNetApp {
                 this.designState.currentFileId = savedFile.id;
                 this.designState.saveDesign();
                 
+                if (this.currentPlatform === 'petrinet') {
+                    this.designState.clearUnsavedChanges();
+                } else {
+                    this.algovizApp.markSaved();
+                }
+                
                 // Update title directly to clear '*' immediately after async save
-                const title = `Petri Net Simulator - ${this.designState.currentFileName}${this.designState.hasUnsavedChanges() ? "*" : ""}`;
+                const title = `AlgoViz Studio - ${this.designState.currentFileName}${this.hasUnsavedChanges() ? "*" : ""}`;
                 document.title = title;
                 const display = document.getElementById('file-name-display');
                 if (display) display.textContent = this.designState.currentFileName;
@@ -612,6 +681,63 @@ class PetriNetApp {
     saveAsLocalDesign() {
         if (this.fileExplorer) {
             this.fileExplorer.open();
+        }
+    }
+
+    initFileSystem() {
+        this.fs = new FileSystem(this.currentPlatform);
+        this.fs.init().then(() => {
+            this.fileExplorer = new FileExplorer(this);
+            if (this.currentPlatform === 'algoviz' && this.toolbarTop) {
+                // We need to re-render toolbar if file explorer reference changes
+                this.updateUI();
+            }
+        });
+    }
+
+    switchPlatform(platform) {
+        this.currentPlatform = platform;
+        
+        const petrinetEl = document.getElementById('petrinet-app');
+        const algovizEl = document.getElementById('algoviz-app');
+        const platformBadge = document.getElementById('platform-badge');
+        const modelBadge = document.getElementById('model-badge');
+        const modelSwitch = document.getElementById('model-switch');
+
+        if (platform === 'petrinet') {
+            petrinetEl.style.display = 'block';
+            algovizEl.style.display = 'none';
+            platformBadge.textContent = 'PetriNet';
+            modelBadge.style.display = 'inline';
+            modelSwitch.style.display = 'flex';
+        } else {
+            petrinetEl.style.display = 'none';
+            algovizEl.style.display = 'flex';
+            platformBadge.textContent = 'AlgoViz';
+            modelBadge.style.display = 'none';
+            modelSwitch.style.display = 'none';
+            
+            if (!this.algovizApp) {
+                this.algovizApp = initAlgoViz(this);
+            }
+        }
+        
+        // Re-initialize file system for the new platform database
+        this.initFileSystem();
+        
+        // Clear current file tracking state
+        this.designState.currentFileId = null;
+        this.designState.currentFileName = "Untitled";
+        this.designState.clearUnsavedChanges();
+        
+        this.updateUI();
+    }
+    
+    hasUnsavedChanges() {
+        if (this.currentPlatform === 'petrinet') {
+            return this.designState.hasUnsavedChanges();
+        } else {
+            return this.algovizApp && this.algovizApp.hasUnsavedChanges();
         }
     }
 
@@ -636,7 +762,14 @@ class PetriNetApp {
 
     exportDesign() {
         if (!this.designState.hasDesign()) return;
-        const design = Saver.save(this);
+        let design;
+        if (this.currentPlatform === 'petrinet') {
+            if (!this.designState.hasDesign()) return;
+            design = Saver.save(this);
+        } else {
+            if (!this.algovizApp) return;
+            design = this.algovizApp.getState();
+        }
         const json = JSON.stringify(design, null, 2);
         const blob = new Blob([json], { type: "application/json" });
         const url = URL.createObjectURL(blob);

@@ -1,7 +1,7 @@
 {
-  "name": "petrinetssimulator",
+  "name": "algovizstudio",
   "version": "1.0.0",
-  "description": "Thank you for checking out the Petri Net Simulator! I’ve created this web application and made it freely available to help users model, simulate, and analyze Petri Nets for educational, research, or professional purposes. Since this is offered for free, your support would be immensely appreciated to help me maintain and improve it. If you find this tool valuable, please consider donating to support my work:",
+  "description": "AlgoViz Studio combines Petri Net simulation and Graph Algorithm visualization into one powerful educational platform.",
   "main": "core.js",
   "type": "commonjs",
   "scripts": {
