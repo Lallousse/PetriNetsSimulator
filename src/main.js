@@ -305,7 +305,21 @@ class PetriNetApp {
         if (property === 'passOnTrue') element.passOnTrue = value;
         if (property === 'passOnFalse') element.passOnFalse = value;
         if (property === 'passPreviousValue') element.passPreviousValue = value;
-        if (property === 'weight') element.weight = parseInt(value, 10);
+        if (property === 'weight') {
+            element.weight = parseInt(value, 10);
+            if (element instanceof Arc) {
+                if (element.isInput && element.end instanceof Transition) {
+                    const linked = element.end.inputArcs.find(a => a.place === element.start);
+                    if (linked) linked.weight = element.weight;
+                } else if (!element.isInput && element.start instanceof Transition) {
+                    const linked = element.start.outputArcs.find(a => a.place === element.end);
+                    if (linked) linked.weight = element.weight;
+                } else if (element.start instanceof Initializer) {
+                    const linked = element.start.outputArcs.find(a => a.place === element.end);
+                    if (linked) linked.weight = element.weight;
+                }
+            }
+        }
         if (property === 'tokensToGenerate') element.tokensToGenerate = parseInt(value, 10);
         if (property === 'tokensPerSecond') element.tokensPerSecond = parseFloat(value);
         if (property === 'isContinuous') element.isContinuous = value;
