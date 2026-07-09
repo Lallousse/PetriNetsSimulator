@@ -36,7 +36,7 @@ AlgoViz Studio gives you the best of two worlds in one unified app:
 2. **Adjust Speed**: Use the "Speed" button to cycle through speeds (0.25x, 0.5x, 1.0x, 1.5x) for faster or slower animations.
 3. **Zoom and Pan**: Use the "Zoom In" and "Zoom Out" buttons, mouse wheel, or pinch gestures (on touch devices) to adjust the view. Use the "Hand" tool to drag the canvas for panning.
 
-### Advanced Features
+### Advanced Features (Petri Net)
 - **Edit and Delete**: Switch to "Select" mode, click or drag to select elements, double-click to edit properties (e.g., names, weights, tasks), or use the "Delete" button to remove selected elements.
 - **Clear Canvas**: Click "Clear Canvas" to remove all elements (confirms if unsaved changes exist).
 - **Save and Load**: Use "Save" to download your design as a JSON file, and "Load" (load icon) to import a saved design.
@@ -44,6 +44,23 @@ AlgoViz Studio gives you the best of two worlds in one unified app:
   - **Petri Net Formal Notation (PN-FN)**: Click "PN-FN" to view the formal notation (P, T, I, O, M₀) of your net(s), regenerate markings, or insert as a note.
   - **Matrix Representation (MR-PN)**: Click "MR-PN" to see input/output matrices, regenerate them, or insert as a note.
 - **Switch Models**: Use the "Switch" button to toggle between T-Model and S-Model, adapting the behavior of your net.
+
+### Using AlgoViz (Graph Algorithms)
+AlgoViz is a dedicated platform within the Studio that allows you to draw graphs and visualize classic algorithms step-by-step.
+1. **Building Your Graph**:
+   - Use the **Node** button to drop new nodes onto the canvas.
+   - Use the **Edge** button to draw connections between nodes. The edges will automatically adapt (directed or undirected) based on the algorithm you have selected.
+   - Double-click an edge to edit its **Weight**.
+   - Double-click a node to edit its name.
+2. **Algorithm Selection**:
+   - Choose between **Prim**, **Kruskal**, **Dijkstra**, or **Bellman-Ford**.
+   - For Dijkstra, Prim, and Bellman-Ford, click **Select Start Node** (target icon), then click a node to designate it as the starting point.
+3. **Visualization & Playback**:
+   - Press **Play** to start the algorithm. It will automatically step through the algorithm, highlighting active nodes and edges.
+   - A **Floating Steps Table** tracks the state, distances, and data structures at every step of the algorithm.
+   - Use **Next Step** and **Pause** to manually step through the execution.
+   - Check the **Explanation Panel** in the bottom left corner for real-time pedagogical explanations of what the algorithm is doing at that exact moment.
+   - *Note: Bellman-Ford fully supports negative edge weights and correctly visualizes its negative cycle detection phase.*
 
 ### Tips for Best Use
 - **Snap to Grid**: Enable "Snap"  to snap elements neatly on a grid for unmovable cleaner designs.

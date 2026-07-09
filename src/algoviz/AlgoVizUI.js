@@ -210,7 +210,7 @@ export class AlgoVizUI {
         const weight = parseInt(document.getElementById('edge-weight-input').value);
         const isDirected = document.getElementById('edge-directed-input').checked;
         
-        if (!isNaN(weight) && weight > 0) {
+        if (!isNaN(weight)) {
             // Call the callback with the updated values
             if (this.onEdgeEdit) {
                 this.onEdgeEdit(this.currentEdgeId, { weight, isDirected });

@@ -565,6 +565,13 @@ export function initAlgoViz(appContext) {
         if (canvas.selectedElement && canvas.selectedElement.type === 'edge') {
             const edge = graph.getEdge(canvas.selectedElement.id);
             if (edge && edge.isDirected === true) {
+                // Check if the flipped edge would duplicate an existing edge
+                const existingEdge = graph.edges.find(e => e.id !== edge.id && e.from === edge.to && e.to === edge.from);
+                if (existingEdge) {
+                    showToast('An edge in that direction already exists', 3000);
+                    return;
+                }
+                
                 // Swap from and to nodes
                 const temp = edge.from;
                 edge.from = edge.to;
