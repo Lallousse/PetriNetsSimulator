@@ -72,6 +72,13 @@ class PetriNetApp {
         // Start render loop
         this.lastTime = performance.now();
         requestAnimationFrame((time) => this.renderLoop(time));
+        
+        // Auto-save loop
+        setInterval(() => {
+            if (this.autoSaveEnabled && this.designState.hasUnsavedChanges()) {
+                this.saveLocalDesign(true);
+            }
+        }, 3000);
     }
 
     initDOM() {
@@ -193,6 +200,7 @@ class PetriNetApp {
                 { id: 'newBtn', icon: 'file-plus', tooltip: 'New Design', action: () => this.newDesign() },
                 { id: 'explorerBtn', icon: 'folder', tooltip: 'File Explorer', action: () => this.fileExplorer && this.fileExplorer.open() },
                 { id: 'saveBtn', icon: 'save', tooltip: 'Save Local', action: () => this.saveLocalDesign() },
+                { id: 'saveAsBtn', icon: 'save-all', tooltip: 'Save As', action: () => this.saveAsLocalDesign() },
                 { id: 'exportBtn', icon: 'download', tooltip: 'Export Design', action: () => this.exportDesign() },
                 { id: 'autoSaveBtn', icon: 'refresh-cw', tooltip: 'Toggle Auto-Save', action: () => this.toggleAutoSave() }
             ],
@@ -263,10 +271,6 @@ class PetriNetApp {
         this.toolbarTop.setActive('autoSaveBtn', this.autoSaveEnabled, false);
         this.toolbarTop.setActive('snapBtn', this.snapToGrid, false);
 
-        if (this.autoSaveEnabled && this.designState.hasUnsavedChanges()) {
-            this.saveLocalDesign(true); // silent
-        }
-        
         createIcons({ icons, nameAttr: 'data-lucide' });
     }
 
@@ -565,7 +569,9 @@ class PetriNetApp {
     }
 
     async saveLocalDesign(silent = false) {
+        if (this.isSaving) return;
         try {
+            this.isSaving = true;
             if (!this.designState.hasDesign()) return;
             const design = Saver.save(this);
             const json = JSON.stringify(design, null, 2);
@@ -598,6 +604,20 @@ class PetriNetApp {
             if (!silent && this.modalManager) {
                 this.modalManager.showAlert("Error", "Failed to save design locally: " + err.message);
             }
+        } finally {
+            this.isSaving = false;
+        }
+    }
+
+    async saveAsLocalDesign() {
+        const newName = prompt('Enter new file name for this copy:', this.designState.currentFileName || 'Copy of Design');
+        if (newName) {
+            this.designState.currentFileName = newName;
+            this.designState.currentFileId = null; // Force a new file to be created
+            this.designState.setUnsavedChanges();
+            await this.saveLocalDesign();
+            if (this.fileExplorer) this.fileExplorer.render();
+            this.updateUI();
         }
     }
 
