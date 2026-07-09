@@ -2,6 +2,7 @@
  * UI handling for dialogs, panels, and user interactions
  */
 import { formatNumber } from './utils.js';
+import { createIcons, icons } from 'lucide';
 
 export class AlgoVizUI {
     constructor() {
@@ -329,12 +330,10 @@ export class AlgoVizUI {
         if (button) {
             button.setAttribute('data-tooltip', tooltipText);
             button.innerHTML = `<i data-lucide="${iconName}"></i>`;
-            if (window.lucide) {
-                window.lucide.createIcons({
-                    icons: window.lucide,
-                    nameAttr: 'data-lucide'
-                });
-            }
+            createIcons({
+                icons,
+                nameAttr: 'data-lucide'
+            });
         }
     }
     
