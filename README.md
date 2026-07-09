@@ -1,11 +1,7 @@
 # Petri Net Simulator Web App
 
-## Support This Free Project
-Thank you for checking out the Petri Net Simulator! I’ve created this web application and made it freely available to help users model, simulate, and analyze Petri Nets for educational, research, or professional purposes. Since this is offered for free, your support would be immensely appreciated to help me maintain and improve it. If you find this tool valuable, please consider donating to support my work:
+The Petri Net Simulator is a free, interactive web-based tool designed to help you create, simulate, and analyze Petri Nets. This project has recently been renovated with a modern technology stack (Vite, ES Modules) and a premium dark UI using glassmorphism and Lucide icons.
 
-- **Western Union/OMT**: Contact me on Discord at `Lallousse#2052` with your donation intent, and I’ll provide my personal information for sending money via Western Union or OMT. This ensures a secure and direct way to support me—thank you!
-
-Your support helps cover my time, hosting costs, and future enhancements—thank you!
 
 ## What is the Petri Net Simulator?
 The Petri Net Simulator is a free, interactive web-based tool designed to help you create, simulate, and analyze Petri Nets. Whether you’re a student learning about Petri Nets, a researcher modeling complex systems, or a professional designing workflows, this app provides an intuitive interface to visualize and test your models in real-time.

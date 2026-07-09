@@ -1,0 +1,30 @@
+{
+  "name": "petrinetssimulator",
+  "version": "1.0.0",
+  "description": "Thank you for checking out the Petri Net Simulator! I’ve created this web application and made it freely available to help users model, simulate, and analyze Petri Nets for educational, research, or professional purposes. Since this is offered for free, your support would be immensely appreciated to help me maintain and improve it. If you find this tool valuable, please consider donating to support my work:",
+  "main": "core.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lallousse/PetriNetsSimulator.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Lallousse/PetriNetsSimulator/issues"
+  },
+  "homepage": "https://github.com/Lallousse/PetriNetsSimulator#readme",
+  "devDependencies": {
+    "lucide": "^1.23.0",
+    "vite": "^8.1.4"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1"
+  }
+}

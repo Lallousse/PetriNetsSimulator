@@ -4,104 +4,62 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Petri Net Simulator</title>
-    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="left-panel">
-        <button id="placeBtn" class="tool-btn" title="Place"><img src="assets/place.png" alt="Place"></button>
-        <button id="transitionBtn" class="tool-btn" title="Transition"><img src="assets/transition.png" alt="Transition"></button>
-        <button id="arcBtn" class="tool-btn" title="Arc"><img src="assets/arc.png" alt="Arc"></button>
-        <button id="iniBtn" class="tool-btn" title="Initializer"><img src="assets/ini.png" alt="Initializer"></button>
-        <button id="plusTokenBtn" class="tool-btn" title="+Token"><img src="assets/plus.png" alt="+Token"></button>
-        <button id="minusTokenBtn" class="tool-btn" title="-Token"><img src="assets/minus.png" alt="-Token"></button>
-        <button id="annotateBtn" class="tool-btn" title="Annotate"><img src="assets/note.png" alt="Annotate"></button>
-        <button id="zoomInBtn" class="tool-btn" title="Zoom In"><img src="assets/zin.png" alt="Zoom In"></button>
-        <button id="zoomOutBtn" class="tool-btn" title="Zoom Out"><img src="assets/zout.png" alt="Zoom Out"></button>
+    <div id="splash">
+        <div class="spinner"></div>
+        <div style="font-size: 1.5rem; font-weight: 600; color: #e2e8f0;">PetriNet Simulator</div>
+        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 8px;">Loading environment...</div>
     </div>
-    <div id="right-panel">
-        <button id="newBtn" class="tool-btn" title="New"><img src="assets/new.png" alt="New"></button>
-        <button id="selectBtn" class="tool-btn" title="Select"><img src="assets/select.png" alt="Select"></button>
-        <button id="handBtn" class="tool-btn" title="Hand"><img src="assets/hand.png" alt="Hand"></button>
-        <button id="deleteBtn" class="tool-btn" title="Delete"><img src="assets/delete.png" alt="Delete"></button>
-        <button id="playPauseBtn" class="tool-btn" title="Play/Pause"><img src="assets/play.png" alt="Play/Pause"></button>
-        <button id="resetBtn" class="tool-btn" title="Reset"><img src="assets/reset.png" alt="Reset"></button>
-        <button id="snapBtn" class="tool-btn" title="Snap"><img src="assets/snap.png" alt="Snap"></button>
-        <button id="speedBtn" class="tool-btn" title="Speed"><img src="assets/speed.png" alt="Speed"></button>
-        <button id="saveBtn" class="tool-btn" title="Save"><img src="assets/save.png" alt="Save"></button>
-        <button id="loadBtn" class="tool-btn" title="Load"><img src="assets/load.png" alt="Load"></button>
-        <button id="clearBtn" class="tool-btn" title="Clear"><img src="assets/clear.png" alt="Clear"></button>
-        <button id="switchBtn" class="tool-btn" title="Switch Model"><img src="assets/switch.png" alt="Switch"></button>
-        <button id="guideBtn" class="tool-btn" title="Guide"><img src="assets/guide.png" alt="Guide"></button>
-        <button id="pnfnBtn" class="tool-btn" title="PN-FN"><img src="assets/pnfn.png" alt="PN-FN"></button>
-        <button id="mrpnBtn" class="tool-btn" title="MR-PN"><img src="assets/mrpn.png" alt="MR-PN"></button>
-        <div class="dropdown">
-            <button id="colorBtn" class="tool-btn" title="Color"><img src="assets/color.png" alt="Color"></button>
-            <div class="dropdown-content" id="colorDropdown">
-                <div class="color-option" style="background-color: black;" onclick="window.canvas.changeAnnotationColor('black')"></div>
-                <div class="color-option" style="background-color: red;" onclick="window.canvas.changeAnnotationColor('red')"></div>
-                <div class="color-option" style="background-color: blue;" onclick="window.canvas.changeAnnotationColor('blue')"></div>
-                <div class="color-option" style="background-color: green;" onclick="window.canvas.changeAnnotationColor('green')"></div>
-                <div class="color-option" style="background-color: #FF00FF;" onclick="window.canvas.changeAnnotationColor('#FF00FF')"></div>
-                <div class="color-option" style="background-color: yellow;" onclick="window.canvas.changeAnnotationColor('yellow')"></div>
-                <div class="color-option" style="background-color: orange;" onclick="window.canvas.changeAnnotationColor('orange')"></div>
-                <div class="color-option" style="background-color: purple;" onclick="window.canvas.changeAnnotationColor('purple')"></div>
+
+    <div id="app">
+        <div id="warning-banner" class="warning-banner" style="display: none;">
+            <span>Note: Designs saved locally are only available in this browser. Please use Export to download your design for use on other browsers/devices.</span>
+            <button class="warning-close" id="warning-close-btn">&times;</button>
+        </div>
+        <!-- Canvas -->
+        <div class="canvas-container">
+            <canvas id="petrinet-canvas"></canvas>
+        </div>
+
+        <!-- Toolbars -->
+        <div id="left-toolbar" class="toolbar"></div>
+        <div id="top-toolbar" class="toolbar"></div>
+
+        <!-- Controls Panel -->
+        <div id="controls-panel" style="position: absolute; top: 16px; right: 16px; z-index: 10; display: flex; gap: 12px; flex-direction: column;">
+            <div class="segmented-control" id="theme-switch" style="width: 160px;">
+                <div class="segment-active-bg" style="width: calc(50% - 4px); left: 4px;"></div>
+                <button class="segment-btn active" data-value="dark" style="width: 50%; justify-content: center;"><i data-lucide="moon" style="width: 14px; height: 14px;"></i> Dark</button>
+                <button class="segment-btn" data-value="light" style="width: 50%; justify-content: center;"><i data-lucide="sun" style="width: 14px; height: 14px;"></i> Light</button>
+            </div>
+            
+            <div class="segmented-control" id="model-switch" style="width: 160px;">
+                <div class="segment-active-bg" style="width: calc(50% - 4px); left: 4px;"></div>
+                <button class="segment-btn active" data-value="T" style="width: 50%; justify-content: center;"><i data-lucide="circle" style="width: 14px; height: 14px;"></i> T-Model</button>
+                <button class="segment-btn" data-value="S" style="width: 50%; justify-content: center;"><i data-lucide="zap" style="width: 14px; height: 14px;"></i> S-Model</button>
             </div>
         </div>
-        <div class="dropdown">
-            <button id="fontBtn" class="tool-btn" title="Font"><img src="assets/font.png" alt="Font"></button>
-            <div class="dropdown-content" id="fontDropdown">
-                <select id="fontFamilySelect" onchange="window.canvas.changeAnnotationFont(this.value, parseInt(document.getElementById('fontSizeSelect').value))">
-                    <option value="Arial">Arial</option>
-                    <option value="Times New Roman">Times New Roman</option>
-                    <option value="Courier New">Courier New</option>
-                    <option value="Verdana">Verdana</option>
-                    <option value="Helvetica">Helvetica</option>
-                </select>
-                <select id="fontSizeSelect" onchange="window.canvas.changeAnnotationFont(document.getElementById('fontFamilySelect').value, parseInt(this.value))">
-                    <option value="8">8</option>
-                    <option value="10">10</option>
-                    <option value="12" selected>12</option>
-                    <option value="14">14</option>
-                    <option value="16">16</option>
-                    <option value="18">18</option>
-                    <option value="20">20</option>
-                </select>
+
+        <!-- Properties Panel -->
+        <div id="properties-panel"></div>
+
+        <!-- Status Bar -->
+        <div id="status-bar">
+            <div class="status-left">
+                <span id="model-badge" class="model-badge t-model">T-Model</span>
+                <span style="color: var(--text-muted);">|</span>
+                <span id="file-name-display" style="font-weight: 500;">Untitled</span>
+            </div>
+            <div class="status-right">
+                <span id="zoom-display">100%</span>
             </div>
         </div>
     </div>
-    <canvas id="petriCanvas"></canvas>
-    <div id="speedLabel">Speed: 1x</div>
-    <div id="statusBar">
-        <span id="statusText">Ready</span>
-        <span id="modelStatus">T-Model</span>
-    </div>
-    <div id="pnfnModal" class="modal">
-        <div class="modal-content">
-            <span class="close">×</span>
-            <textarea id="pnfnText" readonly style="width: 100%; height: 300px;"></textarea>
-            <div class="modal-buttons">
-                <button id="pnfnInsertBtn">Insert as Note</button>
-                <button id="pnfnRegenerateAllBtn">Regenerate All</button>
-                <button id="pnfnRegenerateM0Btn">Regenerate M0</button>
-            </div>
-        </div>
-    </div>
-    <div id="mrpnModal" class="modal">
-        <div class="modal-content">
-            <span class="close">×</span>
-            <div id="mrpnTableContainer"></div>
-            <div class="modal-buttons">
-                <button id="mrpnInsertBtn">Insert as Note</button>
-                <button id="mrpnRegenerateAllBtn">Regenerate All</button>
-                <button id="mrpnRegenerateM0Btn">Regenerate M0</button>
-            </div>
-        </div>
-    </div>
-    <script src="utils.js"></script>
-    <script src="elements.js"></script>
-    <script src="core.js"></script>
-    <script src="designLoader.js"></script>
-    <script src="netAnalyzer.js"></script>
-    <script src="petriNetCanvas.js"></script>
+
+    <!-- Modal Overlay -->
+    <div id="modal-overlay" class="modal-overlay"></div>
+
+    <script type="module" src="/src/main.js"></script>
 </body>
 </html>
