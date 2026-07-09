@@ -744,17 +744,26 @@ class PetriNetApp {
     loadFromLocalFile(file) {
         try {
             const design = JSON.parse(file.content);
-            this.simulation.reset();
-            Loader.load(this, design);
-            this.undoManager.undoHistory = [];
-            this.undoManager.redoHistory = [];
-            this.designState.newDesign(file.name);
-            this.designState.currentFileId = file.id;
-            this.designState.saveDesign();
-            this.selectedElements = [];
-            this.selected = null;
-            this.propertiesPanel.hide();
-            this.updateUI();
+            if (this.currentPlatform === 'algoviz') {
+                if (this.algovizApp && this.algovizApp.setState(design)) {
+                    this.designState.newDesign(file.name);
+                    this.designState.currentFileId = file.id;
+                    this.algovizApp.markSaved();
+                    this.updateUI();
+                }
+            } else {
+                this.simulation.reset();
+                Loader.load(this, design);
+                this.undoManager.undoHistory = [];
+                this.undoManager.redoHistory = [];
+                this.designState.newDesign(file.name);
+                this.designState.currentFileId = file.id;
+                this.designState.saveDesign();
+                this.selectedElements = [];
+                this.selected = null;
+                this.propertiesPanel.hide();
+                this.updateUI();
+            }
         } catch (err) {
             this.modalManager.showAlert("Error", "Error loading file: " + err.message);
         }
@@ -794,15 +803,23 @@ class PetriNetApp {
             reader.onload = event => {
                 try {
                     const design = JSON.parse(event.target.result);
-                    this.simulation.reset();
-                    Loader.load(this, design);
-                    this.undoManager.undoHistory = [];
-                    this.undoManager.redoHistory = [];
-                    this.designState.newDesign(file.name.replace(".json", ""));
-                    this.selectedElements = [];
-                    this.selected = null;
-                    this.propertiesPanel.hide();
-                    this.updateUI();
+                    if (this.currentPlatform === 'algoviz') {
+                        if (this.algovizApp && this.algovizApp.setState(design)) {
+                            this.designState.newDesign(file.name.replace(".json", ""));
+                            this.algovizApp.markSaved();
+                            this.updateUI();
+                        }
+                    } else {
+                        this.simulation.reset();
+                        Loader.load(this, design);
+                        this.undoManager.undoHistory = [];
+                        this.undoManager.redoHistory = [];
+                        this.designState.newDesign(file.name.replace(".json", ""));
+                        this.selectedElements = [];
+                        this.selected = null;
+                        this.propertiesPanel.hide();
+                        this.updateUI();
+                    }
                 } catch (err) {
                     this.modalManager.showAlert("Error", "Error loading file: " + err.message);
                 }
