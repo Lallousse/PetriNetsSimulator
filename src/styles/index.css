@@ -833,7 +833,7 @@ input:checked + .toggle-slider:before {
   border: 1px solid var(--border-color);
   color: var(--text-muted);
   cursor: pointer;
-  padding: 6px;
+  padding: 4px;
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -847,7 +847,7 @@ input:checked + .toggle-slider:before {
   border-color: var(--accent-primary);
 }
 
-.fe-actions button i {
+.fe-actions button svg {
   width: 14px;
   height: 14px;
 }
