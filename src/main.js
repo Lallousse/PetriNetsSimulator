@@ -422,7 +422,7 @@ class PetriNetApp {
                         t.outputArcs = t.outputArcs.filter(a => a.place !== el);
                     });
                     this.initializers.forEach(i => {
-                        if (i.outputPlace === el) i.outputPlace = null;
+                        i.outputArcs = i.outputArcs.filter(a => a.place !== el);
                     });
                 } else if (el instanceof Transition) {
                     this.transitions = this.transitions.filter(t => t !== el);
@@ -437,7 +437,7 @@ class PetriNetApp {
                     } else if (!el.isInput && el.start instanceof Transition) {
                         el.start.outputArcs = el.start.outputArcs.filter(a => a.place !== el.end);
                     } else if (el.start instanceof Initializer) {
-                        el.start.outputPlace = null;
+                        el.start.outputArcs = el.start.outputArcs.filter(a => a.place !== el.end);
                     }
                 } else if (el instanceof Annotation) {
                     this.annotations = this.annotations.filter(a => a !== el);

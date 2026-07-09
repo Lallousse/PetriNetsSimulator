@@ -132,7 +132,7 @@ export class Initializer {
         this.tokenValue = tokenValue;
         this.tokensGenerated = 0;
         this.lastGenerationTime = Date.now();
-        this.outputPlace = null;
+        this.outputArcs = [];
         this.isGenerating = false;
     }
 }

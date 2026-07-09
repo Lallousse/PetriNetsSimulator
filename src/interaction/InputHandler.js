@@ -244,7 +244,7 @@ export class InputHandler {
                         } else if (!isInput && start instanceof Transition) {
                             start.outputArcs.push({ place: end, weight: 1 });
                         } else if (start instanceof Initializer) {
-                            start.outputPlace = end;
+                            start.outputArcs.push({ place: end, weight: 1 });
                         }
                         this.app.designState.setUnsavedChanges();
                         this.app.updateUI();

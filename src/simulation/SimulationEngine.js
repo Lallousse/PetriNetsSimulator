@@ -32,7 +32,7 @@ export class SimulationEngine {
         transition.inputArcs.forEach(arc => {
             const place = arc.place;
             const weight = this.canvas.isSmartModel ? 1 : arc.weight;
-            const tokensToMove = Math.min(weight, place.tokens);
+            const tokensToMove = weight; // Guaranteed by isEnabled() check above
             
             for (let i = 0; i < tokensToMove; i++) {
                 const token = this.canvas.isSmartModel ? new SmartToken(place.getTokenValue()) : null;
@@ -50,7 +50,17 @@ export class SimulationEngine {
         if (queue.length === 0 && transition.inputArcs.length > 0) {
             transition.active = false;
         } else {
-            this.tokenQueue.set(transition, queue);
+            // Snapshot execution parameters (Option A: Lock parameters upon initiation)
+            const snapshot = {
+                outputArcs: transition.outputArcs.map(a => ({ ...a })),
+                task: transition.task ? Object.assign(Object.create(Object.getPrototypeOf(transition.task)), transition.task) : null,
+                tokenOrder: transition.tokenOrder,
+                passOnTrue: transition.passOnTrue,
+                passOnFalse: transition.passOnFalse,
+                passPreviousValue: transition.passPreviousValue
+            };
+            
+            this.tokenQueue.set(transition, { queue, snapshot });
 
             const checkAnimations = setInterval(() => {
                 const inputAnimsPending = this.canvas.animations.some(a => a.transition === transition && a.toTransition && !a.isFinished());
@@ -73,24 +83,38 @@ export class SimulationEngine {
             return;
         }
 
-        const queue = this.tokenQueue.get(transition);
-        const requiredTokens = this.canvas.isSmartModel ? transition.inputArcs.length : transition.inputArcs.reduce((sum, a) => sum + a.weight, 0);
-        const stillEnabled = queue.length >= requiredTokens;
-
-        if (stillEnabled) {
-            if (this.canvas.isSmartModel) {
-                const smartTokens = queue.map(q => q.token);
-                transition.fireSmart(this.canvas.animations, smartTokens);
-            } else {
-                transition.fire(this.canvas.animations);
-            }
-            // Set speed on newly created output animations
-            this.canvas.animations.forEach(a => {
-                if (a.transition === transition && !a.toTransition) {
-                    a.animationSpeed = this.canvas.animationSpeed || 1.0;
-                }
-            });
+        const { queue, snapshot } = this.tokenQueue.get(transition);
+        
+        // Backup live settings that might have been changed by user mid-animation
+        const liveState = {
+            outputArcs: transition.outputArcs,
+            task: transition.task,
+            tokenOrder: transition.tokenOrder,
+            passOnTrue: transition.passOnTrue,
+            passOnFalse: transition.passOnFalse,
+            passPreviousValue: transition.passPreviousValue
+        };
+        
+        // Apply locked snapshot for firing
+        Object.assign(transition, snapshot);
+        
+        // Unconditionally fire because tokens were already consumed
+        if (this.canvas.isSmartModel) {
+            const smartTokens = queue.map(q => q.token);
+            transition.fireSmart(this.canvas.animations, smartTokens);
+        } else {
+            transition.fire(this.canvas.animations);
         }
+        
+        // Restore live settings so future simulations use user's changes
+        Object.assign(transition, liveState);
+        
+        // Set speed on newly created output animations
+        this.canvas.animations.forEach(a => {
+            if (a.transition === transition && !a.toTransition) {
+                a.animationSpeed = this.canvas.animationSpeed || 1.0;
+            }
+        });
 
         transition.active = false;
         this.tokenQueue.delete(transition);
@@ -129,16 +153,20 @@ export class SimulationEngine {
         
         const now = Date.now();
         this.canvas.initializers.forEach(ini => {
-            if (ini.outputPlace && ini.tokensPerSecond > 0) {
+            if (ini.outputArcs.length > 0 && ini.tokensPerSecond > 0) {
                 const timeSinceLast = now - ini.lastGenerationTime;
                 const interval = 1000 / ini.tokensPerSecond;
                 
                 if (timeSinceLast >= interval) {
                     if (ini.isContinuous || ini.tokensGenerated < ini.tokensToGenerate) {
-                        const smartToken = this.canvas.isSmartModel ? new SmartToken(ini.tokenValue) : null;
-                        const anim = new TokenAnimation(ini.x, ini.y, ini.outputPlace.x, ini.outputPlace.y, ini.outputPlace, ini, smartToken);
-                        anim.animationSpeed = this.canvas.animationSpeed || 1.0;
-                        this.canvas.animations.push(anim);
+                        ini.outputArcs.forEach(a => {
+                            for (let i = 0; i < a.weight; i++) {
+                                const smartToken = this.canvas.isSmartModel ? new SmartToken(ini.tokenValue) : null;
+                                const anim = new TokenAnimation(ini.x, ini.y, a.place.x, a.place.y, a.place, ini, smartToken);
+                                anim.animationSpeed = this.canvas.animationSpeed || 1.0;
+                                this.canvas.animations.push(anim);
+                            }
+                        });
                         
                         ini.tokensGenerated++;
                         ini.lastGenerationTime = now;

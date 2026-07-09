@@ -39,20 +39,29 @@ export class UndoManager {
             places: this.canvas.places.map(p => ({ ...p, smartToken: p.smartToken ? { value: p.smartToken.value } : null })),
             transitions: this.canvas.transitions.map(t => ({
                 ...t,
-                inputArcs: [...t.inputArcs],
-                outputArcs: [...t.outputArcs],
                 task: t.task ? { task: t.task.task } : null,
                 tokenOrder: t.tokenOrder,
                 passOnTrue: t.passOnTrue,
                 passOnFalse: t.passOnFalse,
                 passPreviousValue: t.passPreviousValue
             })),
-            arcs: this.canvas.arcs.map(a => ({ 
-                ...a, 
-                type: a.type, 
-                controlPoints: a.controlPoints.map(cp => ({ ...cp })), 
-                weight: a.weight 
-            })),
+            arcs: this.canvas.arcs.map(a => {
+                let startType, startIdx, endType, endIdx;
+                if (a.start instanceof Place) { startType = 'Place'; startIdx = this.canvas.places.indexOf(a.start); }
+                else if (a.start instanceof Transition) { startType = 'Transition'; startIdx = this.canvas.transitions.indexOf(a.start); }
+                else { startType = 'Initializer'; startIdx = this.canvas.initializers.indexOf(a.start); }
+
+                if (a.end instanceof Place) { endType = 'Place'; endIdx = this.canvas.places.indexOf(a.end); }
+                else { endType = 'Transition'; endIdx = this.canvas.transitions.indexOf(a.end); }
+
+                return {
+                    isInput: a.isInput,
+                    startType, startIdx,
+                    endType, endIdx,
+                    controlPoints: a.controlPoints.map(cp => ({ ...cp })),
+                    weight: a.weight
+                };
+            }),
             initializers: this.canvas.initializers.map(i => ({ ...i })),
             annotations: this.canvas.annotations.map(a => ({ ...a })),
             isSmartModel: this.canvas.isSmartModel,
@@ -82,33 +91,25 @@ export class UndoManager {
         );
         
         this.canvas.arcs = state.arcs.map(a => {
-            const start = a.start.tokens !== undefined ? this.canvas.places.find(p => p.name === a.start.name) :
-                          a.start.inputArcs !== undefined ? this.canvas.transitions.find(t => t.name === a.start.name) :
-                          this.canvas.initializers.find(i => i.name === a.start.name);
-            const end = a.end.tokens !== undefined ? this.canvas.places.find(p => p.name === a.end.name) :
-                        this.canvas.transitions.find(t => t.name === a.end.name);
+            const start = a.startType === 'Place' ? this.canvas.places[a.startIdx] :
+                          a.startType === 'Transition' ? this.canvas.transitions[a.startIdx] :
+                          this.canvas.initializers[a.startIdx];
+            const end = a.endType === 'Place' ? this.canvas.places[a.endIdx] :
+                        this.canvas.transitions[a.endIdx];
             
             const arc = new Arc(start, end, a.isInput);
-            arc.controlPoints = a.controlPoints.map(cp => ({ x: cp.x, y: cp.y }));
+            arc.controlPoints = a.controlPoints ? a.controlPoints.map(cp => ({ x: cp.x, y: cp.y })) : [];
             arc.weight = a.weight || 1;
-            return arc;
-        });
-        
-        this.canvas.transitions.forEach((t, i) => {
-            t.inputArcs = state.transitions[i].inputArcs.map(a => ({ 
-                place: this.canvas.places.find(p => p.name === a.place.name), 
-                weight: a.weight 
-            }));
-            t.outputArcs = state.transitions[i].outputArcs.map(a => ({ 
-                place: this.canvas.places.find(p => p.name === a.place.name), 
-                weight: a.weight 
-            }));
-        });
-        
-        this.canvas.initializers.forEach((ini, idx) => {
-            if (state.initializers[idx].outputPlace) {
-                ini.outputPlace = this.canvas.places.find(p => p.name === state.initializers[idx].outputPlace.name);
+            
+            if (arc.isInput && end instanceof Transition) {
+                end.inputArcs.push({ place: start, weight: arc.weight });
+            } else if (!arc.isInput && start instanceof Transition) {
+                start.outputArcs.push({ place: end, weight: arc.weight });
+            } else if (start instanceof Initializer) {
+                start.outputArcs.push({ place: end, weight: arc.weight });
             }
+            
+            return arc;
         });
         
         this.canvas.annotations = state.annotations.map(a => 

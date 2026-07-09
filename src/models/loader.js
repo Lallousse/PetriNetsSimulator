@@ -45,7 +45,7 @@ export class Loader {
             } else if (!arc.isInput && start instanceof Transition) {
                 start.outputArcs.push({ place: end, weight: newArc.weight });
             } else if (start instanceof Initializer) {
-                start.outputPlace = end;
+                start.outputArcs.push({ place: end, weight: newArc.weight });
             }
             return newArc;
         });
