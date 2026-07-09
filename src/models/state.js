@@ -23,6 +23,10 @@ export class DesignState {
         this.unsavedChanges = true;
     }
 
+    clearUnsavedChanges() {
+        this.unsavedChanges = false;
+    }
+
     newDesign(fileName) {
         this.currentFileName = fileName;
         this.unsavedChanges = false;

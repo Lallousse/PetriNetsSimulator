@@ -1,7 +1,7 @@
 /**
  * Canvas handling for SVG drawing and interactions
  */
-import { distance, calculateEdgeLabelPosition, calculateArrowPosition } from './utils.js';
+import { distance, calculateEdgeLabelPosition, calculateArrowPosition, formatNumber, showToast } from './utils.js';
 
 export class GraphCanvas {
     constructor(svgElement, graph) {
